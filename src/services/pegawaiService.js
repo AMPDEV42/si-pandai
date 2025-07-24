@@ -1,5 +1,19 @@
 import { supabase } from '../lib/customSupabaseClient';
 
+// Helper function to convert snake_case to camelCase
+const toCamel = (s) => {
+  return s.replace(/([-_][a-z])/ig, ($1) => {
+    return $1.toUpperCase()
+      .replace('-', '')
+      .replace('_', '');
+  });
+};
+
+// Helper function to convert camelCase to snake_case
+const toSnake = (s) => {
+  return s.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+};
+
 export const getPegawai = async () => {
   const { data, error } = await supabase
     .from('pegawai')
@@ -7,7 +21,15 @@ export const getPegawai = async () => {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  
+  // Convert snake_case to camelCase for frontend
+  return data.map(item => {
+    const newItem = {};
+    Object.keys(item).forEach(key => {
+      newItem[toCamel(key)] = item[key];
+    });
+    return newItem;
+  }) || [];
 };
 
 export const getPegawaiById = async (id) => {
@@ -18,14 +40,26 @@ export const getPegawaiById = async (id) => {
     .single();
 
   if (error) throw error;
-  return data;
+  
+  // Convert snake_case to camelCase for frontend
+  const result = {};
+  Object.keys(data).forEach(key => {
+    result[toCamel(key)] = data[key];
+  });
+  return result;
 };
 
 export const createPegawai = async (pegawaiData) => {
+  // Convert camelCase to snake_case for database
+  const dbData = {};
+  Object.keys(pegawaiData).forEach(key => {
+    dbData[toSnake(key)] = pegawaiData[key];
+  });
+
   const { data, error } = await supabase
     .from('pegawai')
     .insert([{
-      ...pegawaiData,
+      ...dbData,
       tanggal_lahir: new Date(pegawaiData.tanggalLahir).toISOString(),
       tmt: new Date(pegawaiData.tmt).toISOString(),
       masa_kerja: hitungMasaKerja(pegawaiData.tmt)
@@ -34,14 +68,28 @@ export const createPegawai = async (pegawaiData) => {
     .single();
 
   if (error) throw error;
-  return data;
+  
+  // Convert snake_case to camelCase for frontend
+  const result = {};
+  Object.keys(data).forEach(key => {
+    result[toCamel(key)] = data[key];
+  });
+  return result;
 };
 
 export const updatePegawai = async (id, pegawaiData) => {
+  // Convert camelCase to snake_case for database
+  const dbData = {};
+  Object.keys(pegawaiData).forEach(key => {
+    if (key !== 'id') { // Don't include the id in the update
+      dbData[toSnake(key)] = pegawaiData[key];
+    }
+  });
+
   const { data, error } = await supabase
     .from('pegawai')
     .update({
-      ...pegawaiData,
+      ...dbData,
       tanggal_lahir: new Date(pegawaiData.tanggalLahir).toISOString(),
       tmt: new Date(pegawaiData.tmt).toISOString(),
       masa_kerja: hitungMasaKerja(pegawaiData.tmt),
@@ -52,7 +100,13 @@ export const updatePegawai = async (id, pegawaiData) => {
     .single();
 
   if (error) throw error;
-  return data;
+  
+  // Convert snake_case to camelCase for frontend
+  const result = {};
+  Object.keys(data).forEach(key => {
+    result[toCamel(key)] = data[key];
+  });
+  return result;
 };
 
 export const deletePegawai = async (id) => {
