@@ -48,14 +48,20 @@ const NotificationCenter = () => {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
+      }
 
       setNotifications(data || []);
       const unread = (data || []).filter(n => !n.is_read).length;
       setUnreadCount(unread);
     } catch (err) {
       console.error('Error loading notifications:', err);
-      setError('Gagal memuat notifikasi. Silakan muat ulang halaman.');
+      const errorMessage = err.message?.includes('type')
+        ? 'Sistem notifikasi sedang dalam pemeliharaan. Fitur akan kembali normal sebentar lagi.'
+        : 'Gagal memuat notifikasi. Silakan muat ulang halaman.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -95,6 +101,11 @@ const NotificationCenter = () => {
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR') {
           console.error('Error subscribing to notifications channel');
+          setError('Koneksi notifikasi terputus. Memuat ulang otomatis...');
+          // Auto retry after 5 seconds
+          setTimeout(() => {
+            loadNotifications();
+          }, 5000);
         }
       });
 
