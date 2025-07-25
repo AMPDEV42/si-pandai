@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Bell, X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/customSupabaseClient';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
@@ -14,17 +14,58 @@ const formatTimeAgo = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now - date) / 1000);
-  
+
   if (diffInSeconds < 60) return 'Baru saja';
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} menit yang lalu`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} jam yang lalu`;
-  
+
   return date.toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'short',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   });
 };
+
+// Memoize the notification item component for better performance
+const NotificationItem = React.memo(({ notification, onMarkAsRead, onNotificationClick }) => {
+  return (
+    <li
+      className={`relative hover:bg-gray-50 transition-colors ${
+        !notification.is_read ? 'bg-blue-50' : ''
+      } ${notification.isNew ? 'animate-pulse' : ''}`}
+    >
+      <a
+        href={notification.link || '#'}
+        className="block p-3"
+        onClick={(e) => onNotificationClick(notification, e)}
+      >
+        <div className="flex items-start">
+          <div className="flex-shrink-0 pt-0.5">
+            {ICON_MAP.info}
+          </div>
+          <div className="ml-3 flex-1 min-w-0">
+            <div className="flex justify-between">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {notification.title}
+              </p>
+              <div className="text-xs text-gray-500 whitespace-nowrap ml-2">
+                {formatTimeAgo(notification.created_at)}
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">
+              {notification.message}
+            </p>
+          </div>
+        </div>
+        {!notification.is_read && (
+          <div className="absolute top-3 right-3">
+            <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+          </div>
+        )}
+      </a>
+    </li>
+  );
+});
 
 const NotificationCenter = () => {
   const { user } = useAuth();
