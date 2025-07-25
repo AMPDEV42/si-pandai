@@ -109,62 +109,20 @@ const NotificationCenter = () => {
 
     loadNotifications();
 
-    // Only set up subscription if notifications table exists and is accessible
-    let subscription;
+    // Disable real-time notifications for now to prevent errors
+    // TODO: Re-enable when notifications table is properly configured
+    console.log('Real-time notifications disabled - using polling instead');
 
-    const setupSubscription = async () => {
-      try {
-        // Test if we can access notifications table
-        const { error: testError } = await supabase
-          .from('notifications')
-          .select('id')
-          .limit(1);
-
-        if (testError) {
-          console.warn('Notifications table not accessible, skipping subscription:', testError.message);
-          return;
-        }
-
-        subscription = supabase
-          .channel(`notifications-${user.id}`)
-          .on('postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'notifications',
-              filter: `user_id=eq.${user.id}`
-            },
-            (payload) => {
-              if (payload.eventType === 'INSERT') {
-                setNotifications(prev => [
-                  { ...payload.new, isNew: true },
-                  ...prev.filter(n => n.id !== payload.new.id)
-                ]);
-                setUnreadCount(prev => prev + 1);
-              } else if (payload.eventType === 'UPDATE') {
-                setNotifications(prev =>
-                  prev.map(n => n.id === payload.new.id ? { ...payload.new, isNew: false } : n)
-                );
-              } else if (payload.eventType === 'DELETE') {
-                setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
-                setUnreadCount(prev => Math.max(0, prev - 1));
-              }
-            }
-          )
-          .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-              console.log('Successfully subscribed to notifications');
-            } else if (status === 'CHANNEL_ERROR') {
-              console.error('Error subscribing to notifications channel');
-              // Don't show error to user for this non-critical feature
-            }
-          });
-      } catch (error) {
-        console.warn('Failed to setup notifications subscription:', error.message);
+    // Set up periodic polling as fallback
+    const pollInterval = setInterval(() => {
+      if (user?.id) {
+        loadNotifications();
       }
-    };
+    }, 30000); // Poll every 30 seconds
 
-    setupSubscription();
+    return () => {
+      clearInterval(pollInterval);
+    };
 
     return () => {
       if (subscription) {
