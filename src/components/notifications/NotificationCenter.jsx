@@ -3,6 +3,7 @@ import { Bell, X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-r
 import { supabase } from '../../lib/customSupabaseClient';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationService';
+import NetworkErrorHandler from '../common/NetworkErrorHandler';
 
 const ICON_MAP = {
   info: <Info className="w-4 h-4 text-blue-500" />,
