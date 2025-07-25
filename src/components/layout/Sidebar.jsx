@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { useSidebar } from '@/contexts/SidebarContext';
-import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
+import { useAuth } from '../../contexts/SupabaseAuthContext';
+import { useSidebar } from '../../contexts/SidebarContext';
+import { useToast } from '../ui/use-toast';
+import { Button } from '../ui/button';
 import { 
   FileCheck2,
   LayoutDashboard, 
@@ -121,7 +121,7 @@ const Sidebar = () => {
 
           <div className="mt-auto">
             <div className="p-4 mb-4 text-center bg-white/5 rounded-lg">
-              <p className="text-sm font-semibold text-white">{user?.name}</p>
+              <p className="text-sm font-semibold text-white">{user?.name || user?.email}</p>
               <p className="text-xs text-gray-400 capitalize">{user?.role.replace('-', ' ')}</p>
             </div>
             <div className="mt-auto pt-4">
