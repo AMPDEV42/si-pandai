@@ -12,6 +12,7 @@ import { Badge } from '../ui/badge';
 import { googleDriveService } from '../../services/googleDriveService';
 import { apiLogger } from '../../lib/logger';
 import { config } from '../../config/environment';
+import DomainAuthError from './DomainAuthError';
 
 const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
   const [isConfigured, setIsConfigured] = useState(false);
