@@ -12,6 +12,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { employeeService } from '../../services/employeeService';
 import { apiLogger } from '../../lib/logger';
+import NetworkErrorHandler from '../common/NetworkErrorHandler';
 
 const EmployeeSelection = ({ selectedEmployee, onEmployeeSelect, className = '' }) => {
   const [employees, setEmployees] = useState([]);
@@ -48,7 +49,17 @@ const EmployeeSelection = ({ selectedEmployee, onEmployeeSelect, className = '' 
 
     } catch (err) {
       apiLogger.error('Failed to load employees', err);
-      setError('Gagal memuat data pegawai. Silakan coba lagi.');
+
+      // Check if it's a network error
+      const isNetworkError = err.message?.includes('Failed to fetch') ||
+                            err.message?.includes('Network request failed') ||
+                            err.message?.includes('fetch failed');
+
+      if (isNetworkError) {
+        setError(err); // Pass the full error object for NetworkErrorHandler
+      } else {
+        setError(new Error('Gagal memuat data pegawai. Silakan coba lagi.'));
+      }
       setEmployees([]);
     } finally {
       setIsLoading(false);
@@ -166,17 +177,29 @@ const EmployeeSelection = ({ selectedEmployee, onEmployeeSelect, className = '' 
         {!selectedEmployee && (
           <div className="max-h-80 overflow-y-auto scrollbar-hide">
             {error ? (
-              <div className="text-center py-8 text-red-400">
-                <p>{error}</p>
-                <Button 
-                  onClick={() => loadEmployees(searchTerm)}
-                  size="sm"
-                  variant="outline"
-                  className="mt-2"
-                >
-                  Coba Lagi
-                </Button>
-              </div>
+              error.message?.includes('Failed to fetch') ||
+              error.message?.includes('Network request failed') ||
+              error.message?.includes('fetch failed') ? (
+                <div className="p-2">
+                  <NetworkErrorHandler
+                    error={error}
+                    onRetry={() => loadEmployees(searchTerm)}
+                    className="scale-90 origin-top"
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-8 text-red-400">
+                  <p>{error.message || error}</p>
+                  <Button
+                    onClick={() => loadEmployees(searchTerm)}
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                  >
+                    Coba Lagi
+                  </Button>
+                </div>
+              )
             ) : isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (

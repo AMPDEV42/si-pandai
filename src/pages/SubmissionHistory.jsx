@@ -49,13 +49,10 @@ const SubmissionHistory = ({ isAdminView = false }) => {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      
+
       let query = supabase
         .from('submissions')
-        .select(`
-          *,
-          user:user_id (id, name, email, unit_kerja)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       // Filter berdasarkan role user dan mode tampilan
@@ -78,7 +75,39 @@ const SubmissionHistory = ({ isAdminView = false }) => {
 
       if (error) throw error;
 
-      setSubmissions(data || []);
+      // Manually fetch user profiles for submissions
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(s => s.user_id).filter(Boolean))];
+
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, unit_kerja')
+            .in('id', userIds);
+
+          if (profiles) {
+            const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+
+            const submissionsWithUsers = data.map(submission => ({
+              ...submission,
+              user: profileMap[submission.user_id] ? {
+                id: profileMap[submission.user_id].id,
+                name: profileMap[submission.user_id].full_name,
+                email: profileMap[submission.user_id].email,
+                unit_kerja: profileMap[submission.user_id].unit_kerja
+              } : null
+            }));
+
+            setSubmissions(submissionsWithUsers);
+          } else {
+            setSubmissions(data);
+          }
+        } else {
+          setSubmissions(data);
+        }
+      } else {
+        setSubmissions([]);
+      }
     } catch (error) {
       console.error('Error fetching submissions:', error);
     } finally {

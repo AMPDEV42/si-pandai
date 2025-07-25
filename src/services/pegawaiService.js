@@ -22,12 +22,18 @@ export const getPegawai = async () => {
 
   if (error) throw error;
   
-  // Convert snake_case to camelCase for frontend
+  // Convert snake_case to camelCase for frontend and calculate masa kerja
   return data.map(item => {
     const newItem = {};
     Object.keys(item).forEach(key => {
       newItem[toCamel(key)] = item[key];
     });
+
+    // Calculate masa kerja if not present or if TMT is available
+    if (item.tmt && (!item.masa_kerja || !newItem.masaKerja)) {
+      newItem.masaKerja = hitungMasaKerja(item.tmt);
+    }
+
     return newItem;
   }) || [];
 };
@@ -121,16 +127,28 @@ export const deletePegawai = async (id) => {
 
 // Fungsi untuk menghitung masa kerja
 const hitungMasaKerja = (tmt) => {
+  if (!tmt) return { tahun: 0, bulan: 0 };
+
   const tmtDate = new Date(tmt);
   const today = new Date();
-  
+
+  // Validate dates
+  if (isNaN(tmtDate.getTime()) || tmtDate > today) {
+    return { tahun: 0, bulan: 0 };
+  }
+
   let years = today.getFullYear() - tmtDate.getFullYear();
   let months = today.getMonth() - tmtDate.getMonth();
-  
+
   if (months < 0 || (months === 0 && today.getDate() < tmtDate.getDate())) {
     years--;
     months += 12;
   }
-  
-  return { tahun: years, bulan: months };
+
+  // Handle negative months
+  if (months < 0) {
+    months = 0;
+  }
+
+  return { tahun: Math.max(0, years), bulan: Math.max(0, months) };
 };

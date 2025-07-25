@@ -92,6 +92,29 @@ const EmployeeDetailPage = () => {
     });
   };
 
+  const calculateMasaKerja = (startDate) => {
+    if (!startDate) return '0 tahun 0 bulan';
+
+    const start = new Date(startDate);
+    const today = new Date();
+
+    if (isNaN(start.getTime()) || start > today) {
+      return '0 tahun 0 bulan';
+    }
+
+    let years = today.getFullYear() - start.getFullYear();
+    let months = today.getMonth() - start.getMonth();
+
+    if (months < 0 || (months === 0 && today.getDate() < start.getDate())) {
+      years--;
+      months += 12;
+    }
+
+    if (months < 0) months = 0;
+
+    return `${Math.max(0, years)} tahun ${Math.max(0, months)} bulan`;
+  };
+
   const getStatusColor = (status) => {
     return STATUS_COLORS[status] || 'bg-gray-500';
   };
@@ -319,8 +342,12 @@ const EmployeeDetailPage = () => {
                     <p className="text-white">{employee.employee_type || 'N/A'}</p>
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm">Mulai Bekerja</label>
-                    <p className="text-white">{formatDate(employee.work_start_date)}</p>
+                    <label className="text-gray-400 text-sm">TMT/Mulai Bekerja</label>
+                    <p className="text-white">{formatDate(employee.tmt || employee.work_start_date)}</p>
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Masa Kerja</label>
+                    <p className="text-white">{calculateMasaKerja(employee.tmt || employee.work_start_date)}</p>
                   </div>
                   <div>
                     <label className="text-gray-400 text-sm">Pendidikan Terakhir</label>

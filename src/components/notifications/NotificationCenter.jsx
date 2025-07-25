@@ -3,6 +3,7 @@ import { Bell, X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-r
 import { supabase } from '../../lib/customSupabaseClient';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationService';
+import NetworkErrorHandler from '../common/NetworkErrorHandler';
 
 const ICON_MAP = {
   info: <Info className="w-4 h-4 text-blue-500" />,
@@ -95,10 +96,20 @@ const NotificationCenter = () => {
       setUnreadCount(unread);
     } catch (err) {
       console.error('Error loading notifications:', err);
-      const errorMessage = err.message?.includes('column')
-        ? 'Sistem notifikasi sedang dalam pemeliharaan. Fitur akan kembali normal sebentar lagi.'
-        : 'Gagal memuat notifikasi. Silakan muat ulang halaman.';
-      setError(errorMessage);
+
+      // Check if it's a network error
+      const isNetworkError = err.message?.includes('Failed to fetch') ||
+                            err.message?.includes('Network request failed') ||
+                            err.message?.includes('fetch failed');
+
+      if (isNetworkError) {
+        setError(err); // Pass the full error object for NetworkErrorHandler
+      } else {
+        const errorMessage = err.message?.includes('column')
+          ? 'Sistem notifikasi sedang dalam pemeliharaan. Fitur akan kembali normal sebentar lagi.'
+          : 'Gagal memuat notifikasi. Silakan muat ulang halaman.';
+        setError(new Error(errorMessage));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -233,14 +244,28 @@ const NotificationCenter = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               </div>
             ) : error ? (
-              <div className="p-4 text-center text-red-500">
-                {error}
-                <button 
-                  onClick={loadNotifications}
-                  className="mt-2 text-blue-600 hover:underline"
-                >
-                  Coba lagi
-                </button>
+              <div className="p-2">
+                {error.message?.includes('Failed to fetch') ||
+                 error.message?.includes('Network request failed') ||
+                 error.message?.includes('fetch failed') ? (
+                  <div className="text-xs">
+                    <NetworkErrorHandler
+                      error={error}
+                      onRetry={loadNotifications}
+                      className="scale-75 origin-top"
+                    />
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-red-500">
+                    {error.message || error}
+                    <button
+                      onClick={loadNotifications}
+                      className="mt-2 text-blue-600 hover:underline block"
+                    >
+                      Coba lagi
+                    </button>
+                  </div>
+                )}
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-6 text-center text-gray-500">

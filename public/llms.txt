@@ -1,0 +1,6 @@
+## Pages
+- [- SIPANDAI](/login): Masuk atau daftar ke sistem SIPANDAI untuk mengakses layanan administrasi kepegawaian digital.
+- [- SIPANDAI`}](/submissiondetail): No description available
+- [- SIPANDAI`}](/submissionform): No description available
+- [Dashboard Admin Master - SIPANDAI](/adminmasterdashboard): Dashboard untuk admin master mengelola verifikasi dan approval pengajuan administrasi kepegawaian.
+- [Dashboard Admin Unit Kerja - SIPANDAI](/adminunitdashboard): Dashboard untuk admin unit kerja mengelola pengajuan administrasi kepegawaian.

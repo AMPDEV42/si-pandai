@@ -30,6 +30,8 @@ import NewSubmissionPage from './pages/NewSubmissionPage';
 import ImprovedSubmissionPage from './pages/ImprovedSubmissionPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import DataPegawai from './pages/pegawai/index.jsx';
+import GoogleDriveTestPage from './pages/GoogleDriveTestPage';
+import SupabaseMonitor from './components/debug/SupabaseMonitor';
 
 // Component to handle initial redirect
 const InitialRedirect = () => {
@@ -181,6 +183,14 @@ const AppContent = () => {
             ),
           },
           {
+            path: "/test/google-drive",
+            element: (
+              <ProtectedRoute allowedRoles={['admin-master', 'admin-unit']}>
+                <GoogleDriveTestPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
             path: "/",
             element: <InitialRedirect />,
           },
@@ -219,6 +229,7 @@ const AppContent = () => {
         <div className="min-h-screen">
           <Toaster />
           <RouterProvider router={router} />
+          <SupabaseMonitor />
         </div>
       </HelmetProvider>
     </ErrorBoundary>

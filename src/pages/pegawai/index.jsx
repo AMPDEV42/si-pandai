@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, User, Building2, Calendar, Search, Filter } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -8,21 +8,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Badge } from '../../components/ui/badge';
 import { format, parseISO, subDays } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { motion } from 'framer-motion';
-import { 
-  getPegawai, 
-  createPegawai, 
-  updatePegawai, 
-  deletePegawai 
+import {
+  getPegawai,
+  createPegawai,
+  updatePegawai,
+  deletePegawai
 } from '../../services/pegawaiService';
+import EmployeeStats from '../../components/pegawai/EmployeeStats';
 
 export default function DataPegawai() {
   const [pegawai, setPegawai] = useState([]);
+  const [filteredPegawai, setFilteredPegawai] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     nama: '',
     nip: '',
@@ -45,12 +49,28 @@ export default function DataPegawai() {
     try {
       const data = await getPegawai();
       setPegawai(data);
+      setFilteredPegawai(data);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching pegawai:', error);
       setIsLoading(false);
     }
   };
+
+  // Search functionality
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredPegawai(pegawai);
+    } else {
+      const filtered = pegawai.filter(p =>
+        (p.nama || p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.nip || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.unitKerja || p.unit_kerja || p.unit || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.jabatan || p.position || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredPegawai(filtered);
+    }
+  }, [searchTerm, pegawai]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -80,10 +100,16 @@ export default function DataPegawai() {
 
   const handleEdit = (pegawai) => {
     setFormData({
-      ...pegawai,
       id: pegawai.id,
-      tanggalLahir: pegawai.tanggal_lahir ? format(parseISO(pegawai.tanggal_lahir), 'yyyy-MM-dd') : '',
-      tmt: pegawai.tmt ? format(parseISO(pegawai.tmt), 'yyyy-MM-dd') : ''
+      nama: pegawai.nama || pegawai.full_name || '',
+      nip: pegawai.nip || '',
+      pangkatGolongan: pegawai.pangkatGolongan || pegawai.pangkat_golongan || pegawai.pangkat || '',
+      tempatLahir: pegawai.tempatLahir || pegawai.tempat_lahir || pegawai.birth_place || '',
+      tanggalLahir: pegawai.tanggalLahir || (pegawai.tanggal_lahir ? format(parseISO(pegawai.tanggal_lahir), 'yyyy-MM-dd') : ''),
+      tmt: pegawai.tmt ? format(parseISO(pegawai.tmt), 'yyyy-MM-dd') : '',
+      jabatan: pegawai.jabatan || pegawai.position || '',
+      unitKerja: pegawai.unitKerja || pegawai.unit_kerja || pegawai.unit || '',
+      riwayatDiklat: pegawai.riwayatDiklat || []
     });
     setIsEditMode(true);
     setIsDialogOpen(true);
@@ -128,6 +154,16 @@ export default function DataPegawai() {
           <p className="text-gray-300">
             Kelola data pegawai untuk keperluan administrasi
           </p>
+          <div className="flex items-center gap-4 mt-2">
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+              Total: {filteredPegawai.length} pegawai
+            </Badge>
+            {searchTerm && (
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                Hasil pencarian: {filteredPegawai.length}
+              </Badge>
+            )}
+          </div>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
@@ -253,10 +289,52 @@ export default function DataPegawai() {
         </Dialog>
       </motion.div>
 
-      <motion.div 
+      {/* Search and Filter Section */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.05 }}
+        className="bg-white/5 backdrop-blur-lg rounded-xl p-4 border border-white/10"
+      >
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              type="text"
+              placeholder="Cari pegawai berdasarkan nama, NIP, unit kerja, atau jabatan..."
+              className="pl-10 bg-white/5 border-white/20 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          {searchTerm && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchTerm('')}
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Employee Statistics */}
+      {!isLoading && pegawai.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <EmployeeStats employees={pegawai} />
+        </motion.div>
+      )}
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
       >
         <Card className="bg-gray-900/50 backdrop-blur-lg border border-white/10 shadow-xl">
         <CardContent className="p-0">
@@ -279,31 +357,46 @@ export default function DataPegawai() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-white/5">
-                {pegawai.length > 0 ? (
-                  pegawai.map((p) => (
+                {filteredPegawai.length > 0 ? (
+                  filteredPegawai.map((p) => (
                     <TableRow key={p.id} className="hover:bg-white/5 transition-colors">
-                      <TableCell className="text-white/90">{p.nama}</TableCell>
-                      <TableCell className="text-white/70">{p.nip}</TableCell>
-                      <TableCell className="text-white/70">{p.pangkat_golongan}</TableCell>
-                      <TableCell className="text-white/70">{p.jabatan}</TableCell>
-                      <TableCell className="text-white/70">{p.unit_kerja}</TableCell>
+                      <TableCell className="text-white/90">{p.nama || p.full_name || 'N/A'}</TableCell>
+                      <TableCell className="text-white/70">{p.nip || 'N/A'}</TableCell>
                       <TableCell className="text-white/70">
-                        {p.masa_kerja?.tahun} tahun {p.masa_kerja?.bulan} bulan
+                        {p.pangkatGolongan || p.pangkat_golongan || p.pangkat || p.golongan || 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-white/70">{p.jabatan || p.position || 'N/A'}</TableCell>
+                      <TableCell className="text-white/70">
+                        {p.unitKerja || p.unit_kerja || p.unit || p.bagian || 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-white/70">
+                        {(p.masaKerja?.tahun || p.masa_kerja?.tahun || 0)} tahun {(p.masaKerja?.bulan || p.masa_kerja?.bulan || 0)} bulan
                       </TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-blue-400/70 hover:bg-blue-500/10 hover:text-blue-400"
+                          onClick={() => navigate(`/pegawai/${p.id}`)}
+                          title="Lihat Detail"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
                           size="icon"
                           className="text-white/70 hover:bg-white/10 hover:text-white"
                           onClick={() => handleEdit(p)}
+                          title="Edit Data"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           className="text-red-500/80 hover:bg-red-500/10 hover:text-red-400"
-                          onClick={() => handleDelete(p._id)}
+                          onClick={() => handleDelete(p.id || p._id)}
+                          title="Hapus Data"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -313,7 +406,7 @@ export default function DataPegawai() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-white/50">
-                      Tidak ada data pegawai
+                      {searchTerm ? `Tidak ada pegawai yang sesuai dengan "${searchTerm}"` : 'Tidak ada data pegawai'}
                     </TableCell>
                   </TableRow>
                 )}
