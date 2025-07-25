@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { useAuth } from '../contexts/SupabaseAuthContext';
-import { initializeSampleData } from '../lib/dataInitializer';
+import { submissionService } from '../services/submissionService';
+import { apiLogger } from '../lib/logger';
 import { 
   FileText, 
   Clock, 
@@ -31,6 +32,7 @@ const AdminMasterDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -43,24 +45,42 @@ const AdminMasterDashboard = () => {
     if (!user) return;
 
     const loadData = async () => {
-      setIsLoading(true);
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      // Simulate loading delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 800));
+        // Load submissions and statistics
+        const [submissionsResult, statsResult] = await Promise.all([
+          submissionService.getSubmissions({ limit: 50 }),
+          submissionService.getSubmissionStats()
+        ]);
 
-      // Initialize sample data if none exists
-      const allSubmissions = initializeSampleData();
-      setSubmissions(allSubmissions);
+        if (submissionsResult.error) {
+          throw new Error(submissionsResult.error.message);
+        }
 
-      const newStats = {
-        total: allSubmissions.length,
-        pending: allSubmissions.filter(sub => sub.status === 'pending').length,
-        approved: allSubmissions.filter(sub => sub.status === 'approved').length,
-        rejected: allSubmissions.filter(sub => sub.status === 'rejected').length,
-        revision: allSubmissions.filter(sub => sub.status === 'revision').length
-      };
-      setStats(newStats);
-      setIsLoading(false);
+        if (statsResult.error) {
+          throw new Error(statsResult.error.message);
+        }
+
+        setSubmissions(submissionsResult.data || []);
+        setStats(statsResult.data || {
+          total: 0, pending: 0, approved: 0, rejected: 0, revision: 0
+        });
+
+        apiLogger.info('Dashboard data loaded successfully', {
+          submissionsCount: submissionsResult.data?.length || 0,
+          stats: statsResult.data
+        });
+
+      } catch (err) {
+        apiLogger.error('Failed to load dashboard data', err);
+        setError('Gagal memuat data dashboard. Silakan coba lagi.');
+        setSubmissions([]);
+        setStats({ total: 0, pending: 0, approved: 0, rejected: 0, revision: 0 });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadData();
