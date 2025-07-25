@@ -187,12 +187,25 @@ class EmployeeService {
     return withErrorHandling(async () => {
       let query = supabase
         .from('pegawai')
-        .select('id, full_name, nip, unit_kerja, email, position')
-        .or(`full_name.ilike.%${searchTerm}%,nip.ilike.%${searchTerm}%`)
+        .select('*')
+        .or(`nama.ilike.%${searchTerm}%,nip.ilike.%${searchTerm}%`)
         .limit(limit)
-        .order('full_name', { ascending: true });
+        .order('nama', { ascending: true });
 
       const result = await query;
+
+      // Transform data to expected format
+      if (result.data) {
+        result.data = result.data.map(pegawai => ({
+          id: pegawai.id,
+          full_name: pegawai.nama || pegawai.full_name || pegawai.name || 'N/A',
+          nip: pegawai.nip || 'N/A',
+          unit_kerja: pegawai.unit || pegawai.unit_kerja || pegawai.bagian || 'N/A',
+          email: pegawai.email || 'N/A',
+          position: pegawai.position || pegawai.jabatan || pegawai.posisi || 'N/A'
+        }));
+      }
+
       return result;
     }, `searchEmployees: ${searchTerm}`);
   }
