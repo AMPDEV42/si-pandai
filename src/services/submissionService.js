@@ -336,7 +336,7 @@ class SubmissionService {
         .from('submissions')
         .select(`
           *,
-          submitter:profiles!submissions_submitted_by_fkey(
+          submitter:profiles!submitted_by(
             full_name,
             email,
             unit_kerja
