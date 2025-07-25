@@ -292,42 +292,12 @@ const NotificationCenter = () => {
             ) : (
               <ul className="divide-y divide-gray-100">
                 {notifications.map((notification) => (
-                  <li
+                  <NotificationItem
                     key={notification.id}
-                    className={`relative hover:bg-gray-50 transition-colors ${
-                      !notification.is_read ? 'bg-blue-50' : ''
-                    } ${notification.isNew ? 'animate-pulse' : ''}`}
-                  >
-                    <a
-                      href={notification.link || '#'}
-                      className="block p-3"
-                      onClick={(e) => handleNotificationClick(notification, e)}
-                    >
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 pt-0.5">
-                          {ICON_MAP.info}
-                        </div>
-                        <div className="ml-3 flex-1 min-w-0">
-                          <div className="flex justify-between">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {notification.title}
-                            </p>
-                            <div className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                              {formatTimeAgo(notification.created_at)}
-                            </div>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {notification.message}
-                          </p>
-                        </div>
-                      </div>
-                      {!notification.is_read && (
-                        <div className="absolute top-3 right-3">
-                          <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-                        </div>
-                      )}
-                    </a>
-                  </li>
+                    notification={notification}
+                    onMarkAsRead={markAsRead}
+                    onNotificationClick={handleNotificationClick}
+                  />
                 ))}
               </ul>
             )}
