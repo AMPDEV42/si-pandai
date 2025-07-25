@@ -149,6 +149,16 @@ export default function DataPegawai() {
           <p className="text-gray-300">
             Kelola data pegawai untuk keperluan administrasi
           </p>
+          <div className="flex items-center gap-4 mt-2">
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+              Total: {filteredPegawai.length} pegawai
+            </Badge>
+            {searchTerm && (
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                Hasil pencarian: {filteredPegawai.length}
+              </Badge>
+            )}
+          </div>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
