@@ -261,13 +261,28 @@ const AdminMasterDashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {filteredSubmissions.length === 0 ? (
+              {error ? (
+                <div className="text-center py-12">
+                  <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                  <p className="text-red-400 text-lg">Terjadi Kesalahan</p>
+                  <p className="text-sm text-gray-500 mt-1">{error}</p>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    className="mt-4"
+                    variant="outline"
+                  >
+                    Muat Ulang
+                  </Button>
+                </div>
+              ) : filteredSubmissions.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400 text-lg">Tidak ada usulan ditemukan</p>
+                  <p className="text-gray-400 text-lg">
+                    {isLoading ? 'Memuat data...' : 'Tidak ada usulan ditemukan'}
+                  </p>
                   <p className="text-sm text-gray-500 mt-1">
-                    {searchTerm || filterStatus !== 'all' 
-                      ? 'Coba ubah filter atau kata kunci pencarian' 
+                    {searchTerm || filterStatus !== 'all'
+                      ? 'Coba ubah filter atau kata kunci pencarian'
                       : 'Belum ada usulan yang diajukan'
                     }
                   </p>
