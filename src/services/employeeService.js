@@ -217,16 +217,16 @@ class EmployeeService {
     return withErrorHandling(async () => {
       const { data, error } = await supabase
         .from('pegawai')
-        .select('unit_kerja, status');
+        .select('unit, status');
 
       if (error) throw error;
 
       const stats = {
         total: data.length,
-        active: data.filter(emp => emp.status === 'active').length,
+        active: data.filter(emp => emp.status === 'active' || !emp.status).length,
         inactive: data.filter(emp => emp.status === 'inactive').length,
         byUnit: data.reduce((acc, employee) => {
-          const unit = employee.unit_kerja || 'N/A';
+          const unit = employee.unit || employee.unit_kerja || 'N/A';
           acc[unit] = (acc[unit] || 0) + 1;
           return acc;
         }, {})
