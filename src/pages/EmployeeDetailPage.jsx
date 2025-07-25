@@ -342,8 +342,12 @@ const EmployeeDetailPage = () => {
                     <p className="text-white">{employee.employee_type || 'N/A'}</p>
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm">Mulai Bekerja</label>
-                    <p className="text-white">{formatDate(employee.work_start_date)}</p>
+                    <label className="text-gray-400 text-sm">TMT/Mulai Bekerja</label>
+                    <p className="text-white">{formatDate(employee.tmt || employee.work_start_date)}</p>
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Masa Kerja</label>
+                    <p className="text-white">{calculateMasaKerja(employee.tmt || employee.work_start_date)}</p>
                   </div>
                   <div>
                     <label className="text-gray-400 text-sm">Pendidikan Terakhir</label>
