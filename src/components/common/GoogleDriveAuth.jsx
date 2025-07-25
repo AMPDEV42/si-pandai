@@ -206,6 +206,18 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
     );
   }
 
+  // Show domain authorization error component if detected
+  if (isDomainError) {
+    return (
+      <div className={className}>
+        <DomainAuthError
+          currentDomain={window.location.origin}
+          onRetry={handleRefresh}
+        />
+      </div>
+    );
+  }
+
   return (
     <Card className={`border-white/20 bg-white/5 ${className}`}>
       <CardContent className="p-4">
