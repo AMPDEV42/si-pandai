@@ -21,7 +21,19 @@ class GoogleDriveService {
    * Check if Google Drive is properly configured
    */
   isConfigured() {
-    return config.googleDrive.enabled;
+    const hasApiKey = !!config.googleDrive.apiKey;
+    const hasClientId = !!config.googleDrive.clientId;
+    const isEnabled = config.googleDrive.enabled;
+
+    apiLogger.debug('Google Drive configuration check', {
+      hasApiKey,
+      hasClientId,
+      isEnabled,
+      apiKeyLength: config.googleDrive.apiKey?.length || 0,
+      clientIdLength: config.googleDrive.clientId?.length || 0
+    });
+
+    return isEnabled && hasApiKey && hasClientId;
   }
 
   /**
