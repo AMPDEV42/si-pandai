@@ -341,8 +341,8 @@ export default function DataPegawai() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-white/5">
-                {pegawai.length > 0 ? (
-                  pegawai.map((p) => (
+                {filteredPegawai.length > 0 ? (
+                  filteredPegawai.map((p) => (
                     <TableRow key={p.id} className="hover:bg-white/5 transition-colors">
                       <TableCell className="text-white/90">{p.nama || p.full_name || 'N/A'}</TableCell>
                       <TableCell className="text-white/70">{p.nip || 'N/A'}</TableCell>
