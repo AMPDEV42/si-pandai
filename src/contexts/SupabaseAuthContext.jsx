@@ -30,7 +30,9 @@ export const AuthProvider = ({ children }) => {
       // Combine user data with profile data
       setUser({
         ...session.user,
-        role: profile?.role || session.user.user_metadata?.role
+        name: profile?.full_name || session.user.user_metadata?.full_name || session.user.email,
+        role: profile?.role || session.user.user_metadata?.role,
+        unitKerja: profile?.unit_kerja || session.user.user_metadata?.unit_kerja
       });
     } else {
       setUser(null);
