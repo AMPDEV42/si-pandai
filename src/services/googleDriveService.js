@@ -113,6 +113,7 @@ class GoogleDriveService {
   loadGoogleAPI() {
     return new Promise((resolve, reject) => {
       if (window.gapi) {
+        apiLogger.debug('Google API already loaded');
         resolve();
         return;
       }
@@ -120,26 +121,42 @@ class GoogleDriveService {
       // Check if script is already loading
       const existingScript = document.querySelector('script[src="https://apis.google.com/js/api.js"]');
       if (existingScript) {
+        apiLogger.debug('Google API script already exists, waiting for load');
         existingScript.addEventListener('load', resolve);
-        existingScript.addEventListener('error', reject);
+        existingScript.addEventListener('error', (error) => {
+          const errorDetails = {
+            message: 'Google API script failed to load',
+            src: existingScript.src,
+            error: error.toString()
+          };
+          apiLogger.error('Existing Google API script failed to load', errorDetails);
+          reject(new Error(`Google API script load failed: ${errorDetails.message}`));
+        });
         return;
       }
 
+      apiLogger.info('Loading Google API script...');
       const script = document.createElement('script');
       script.src = 'https://apis.google.com/js/api.js';
       script.async = true;
       script.defer = true;
-      
+
       script.onload = () => {
-        apiLogger.debug('Google API script loaded successfully');
+        apiLogger.info('Google API script loaded successfully');
         resolve();
       };
-      
+
       script.onerror = (error) => {
-        apiLogger.error('Failed to load Google API script', error);
-        reject(new Error('Failed to load Google API script'));
+        const errorDetails = {
+          message: 'Failed to load Google API script',
+          src: script.src,
+          error: error.toString(),
+          type: error.type || 'unknown'
+        };
+        apiLogger.error('Failed to load Google API script', errorDetails);
+        reject(new Error(`Google API script load failed: ${errorDetails.message}`));
       };
-      
+
       document.head.appendChild(script);
     });
   }
