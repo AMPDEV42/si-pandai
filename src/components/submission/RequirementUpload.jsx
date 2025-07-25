@@ -75,30 +75,43 @@ const RequirementUpload = ({
 
     try {
       validateFile(file);
-      
+
       apiLogger.info('File selected for requirement', {
         requirementId: requirement.id,
         fileName: file.name,
         fileSize: file.size,
-        fileType: file.type
+        fileType: file.type,
+        useGoogleDrive
       });
 
-      // Call parent handler
-      await onFileUpload(requirement.id, file);
+      let uploadResult;
+
+      if (useGoogleDrive && submissionType && employeeName) {
+        // Upload to Google Drive
+        uploadResult = await uploadToGoogleDrive(file);
+      } else {
+        // Use existing upload method
+        uploadResult = { file, name: file.name, size: file.size, type: file.type };
+      }
+
+      // Call parent handler with upload result
+      await onFileUpload(requirement.id, uploadResult);
 
       toast({
-        title: 'File berhasil dipilih',
-        description: `${file.name} siap diupload`,
+        title: 'File berhasil diupload',
+        description: useGoogleDrive ?
+          `${file.name} berhasil disimpan ke Google Drive` :
+          `${file.name} siap diupload`,
       });
 
     } catch (error) {
-      apiLogger.error('File validation failed', {
+      apiLogger.error('File upload failed', {
         requirementId: requirement.id,
         error: error.message
       });
 
       toast({
-        title: 'File tidak valid',
+        title: 'Upload gagal',
         description: error.message,
         variant: 'destructive'
       });
@@ -107,6 +120,45 @@ const RequirementUpload = ({
     // Clear file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadToGoogleDrive = async (file) => {
+    try {
+      // Create folder structure
+      const { employeeFolderId } = await googleDriveService.createSubmissionFolderStructure(
+        submissionType,
+        employeeName
+      );
+
+      // Generate descriptive filename
+      const fileExtension = file.name.split('.').pop();
+      const cleanRequirementName = requirement.title.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+      const fileName = `${cleanRequirementName}.${fileExtension}`;
+
+      // Upload file
+      const uploadResult = await googleDriveService.uploadFile(
+        file,
+        employeeFolderId,
+        fileName
+      );
+
+      apiLogger.info('File uploaded to Google Drive', {
+        requirementId: requirement.id,
+        fileName: uploadResult.name,
+        fileId: uploadResult.id,
+        employeeName
+      });
+
+      return {
+        ...uploadResult,
+        source: 'google-drive',
+        folderId: employeeFolderId
+      };
+
+    } catch (error) {
+      apiLogger.error('Google Drive upload failed', error);
+      throw new Error(`Gagal upload ke Google Drive: ${error.message}`);
     }
   };
 
