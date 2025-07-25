@@ -49,7 +49,17 @@ const EmployeeSelection = ({ selectedEmployee, onEmployeeSelect, className = '' 
 
     } catch (err) {
       apiLogger.error('Failed to load employees', err);
-      setError('Gagal memuat data pegawai. Silakan coba lagi.');
+
+      // Check if it's a network error
+      const isNetworkError = err.message?.includes('Failed to fetch') ||
+                            err.message?.includes('Network request failed') ||
+                            err.message?.includes('fetch failed');
+
+      if (isNetworkError) {
+        setError(err); // Pass the full error object for NetworkErrorHandler
+      } else {
+        setError(new Error('Gagal memuat data pegawai. Silakan coba lagi.'));
+      }
       setEmployees([]);
     } finally {
       setIsLoading(false);
