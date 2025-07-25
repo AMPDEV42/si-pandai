@@ -129,15 +129,38 @@ class GoogleDriveService {
               details: error?.details || 'No details',
               stack: error?.stack || 'No stack trace',
               stringified: error?.toString() || 'Cannot stringify error',
-              currentDomain: window.location.origin
+              currentDomain: window.location.origin,
+              gapiAvailable: !!window.gapi,
+              clientAvailable: !!window.gapi?.client,
+              auth2Available: !!window.gapi?.auth2
             };
             apiLogger.error('Failed to initialize GAPI client', { error: errorDetails });
 
-            // Provide more specific error messages
-            if (errorDetails.message.includes('origin') || errorDetails.message.includes('domain')) {
-              reject(new Error(`Domain authorization error: ${window.location.origin} may not be authorized in Google Cloud Console. Please add this domain to OAuth 2.0 Client ID authorized JavaScript origins.`));
+            // Check for common issues and provide specific guidance
+            if (errorDetails.message.includes('origin') ||
+                errorDetails.message.includes('domain') ||
+                errorDetails.message.includes('not allowed') ||
+                error?.error === 'idpiframe_initialization_failed') {
+              reject(new Error(`❌ Domain Authorization Required: The domain "${window.location.origin}" is not authorized in Google Cloud Console.
+
+📋 To fix this:
+1. Go to: https://console.cloud.google.com/apis/credentials
+2. Edit OAuth 2.0 Client ID: 47138776708-suu99tvg4v2l4248ololg59hvsevpo13.apps.googleusercontent.com
+3. Add to "Authorized JavaScript origins": ${window.location.origin}
+4. Save and wait 5-10 minutes for changes to propagate`));
             } else if (errorDetails.code === 'popup_blocked_by_browser') {
               reject(new Error('Popup blocked by browser. Please allow popups for this domain.'));
+            } else if (!errorDetails.gapiAvailable) {
+              reject(new Error('Google API script not loaded. Check network connectivity.'));
+            } else if (!errorDetails.clientAvailable) {
+              reject(new Error('GAPI client modules not loaded properly. Try refreshing the page.'));
+            } else if (errorDetails.message === 'No message' || errorDetails.message === '') {
+              reject(new Error(`⚠️  Google API initialization failed silently. This usually indicates domain authorization issues.
+
+🔍 Current domain: ${window.location.origin}
+💡 Most likely cause: Domain not authorized in Google Cloud Console OAuth settings.
+
+Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authorized origins.`));
             } else {
               reject(new Error(`GAPI client initialization failed: ${errorDetails.message || errorDetails.code}`));
             }
