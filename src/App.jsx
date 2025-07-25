@@ -10,6 +10,9 @@ import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Toaster } from './components/ui/toaster';
 import { AuthProvider, useAuth } from './contexts/SupabaseAuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import { PageSkeleton } from './components/common/LoadingSkeletons';
+import config from './config/environment';
 import LoginPage from './pages/LoginPage';
 import AdminUnitDashboard from './pages/AdminUnitDashboard';
 import AdminMasterDashboard from './pages/AdminMasterDashboard';
@@ -180,36 +183,42 @@ const AppContent = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4">
+        <PageSkeleton />
       </div>
     );
   }
 
   return (
-    <HelmetProvider>
-      <Helmet>
-        <title>SIPANDAI - Sistem Informasi Pengajuan Administrasi Digital ASN Terintegrasi</title>
-        <meta name="description" content="Platform digital untuk memfasilitasi proses pengajuan berbagai jenis usulan administrasi kepegawaian PNS secara efisien dan terintegrasi." />
-      </Helmet>
-      <div className="min-h-screen">
-        <Toaster />
-        <RouterProvider router={router} />
-      </div>
-    </HelmetProvider>
+    <ErrorBoundary showDetails={config.isDevelopment}>
+      <HelmetProvider>
+        <Helmet>
+          <title>{config.app.fullName}</title>
+          <meta name="description" content="Platform digital untuk memfasilitasi proses pengajuan berbagai jenis usulan administrasi kepegawaian PNS secara efisien dan terintegrasi." />
+          <meta name="author" content={config.app.author} />
+          <meta name="version" content={config.app.version} />
+        </Helmet>
+        <div className="min-h-screen">
+          <Toaster />
+          <RouterProvider router={router} />
+        </div>
+      </HelmetProvider>
+    </ErrorBoundary>
   );
 };
 
 const App = () => {
   return (
-    <HelmetProvider>
-      <AuthProvider>
-        <SidebarProvider>
-          <AppContent />
-          <Toaster />
-        </SidebarProvider>
-      </AuthProvider>
-    </HelmetProvider>
+    <ErrorBoundary showDetails={config.isDevelopment}>
+      <HelmetProvider>
+        <AuthProvider>
+          <SidebarProvider>
+            <AppContent />
+            <Toaster />
+          </SidebarProvider>
+        </AuthProvider>
+      </HelmetProvider>
+    </ErrorBoundary>
   );
 };
 export default App;
