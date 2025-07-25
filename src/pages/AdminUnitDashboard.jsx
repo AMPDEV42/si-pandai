@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { getSubmissionsByCategory } from '@/data/submissionTypes';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { useAuth } from '../contexts/SupabaseAuthContext';
+import { getSubmissionsByCategory } from '../data/submissionTypes';
 import { 
   Plus, 
   FileText, 
@@ -95,7 +95,7 @@ const AdminUnitDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-3xl font-bold text-white">Dashboard Admin Unit</h1>
-          <p className="text-gray-300 mt-1">Selamat datang, {user.name}! Kelola usulan Anda di sini.</p>
+          <p className="text-gray-300 mt-1">Selamat datang, {user?.name || user?.email}! Kelola usulan Anda di sini.</p>
         </motion.div>
 
         <motion.div
