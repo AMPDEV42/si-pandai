@@ -397,6 +397,14 @@ const ImprovedSubmissionPage = () => {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Google Drive Integration */}
+                <GoogleDriveAuth
+                  onAuthChange={(authenticated) => {
+                    setIsGoogleDriveAuthenticated(authenticated);
+                    setUseGoogleDrive(authenticated);
+                  }}
+                />
+
                 {submissionType.requirements?.map((requirement, index) => (
                   <RequirementUpload
                     key={`requirement-${index}`}
@@ -410,6 +418,9 @@ const ImprovedSubmissionPage = () => {
                     onFileUpload={handleFileUpload}
                     onFileRemove={handleFileRemove}
                     isUploading={uploadingFiles[`req-${index}`]}
+                    submissionType={submissionType}
+                    employeeName={selectedEmployee?.full_name}
+                    useGoogleDrive={useGoogleDrive}
                   />
                 ))}
               </CardContent>
