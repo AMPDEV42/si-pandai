@@ -131,61 +131,67 @@ const AdminMasterDashboard = () => {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
         >
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Total Usulan</p>
-                  <p className="text-3xl font-bold text-white">{stats.total}</p>
-                </div>
-                <FileText className="w-8 h-8 text-blue-400" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Menunggu</p>
-                  <p className="text-3xl font-bold text-yellow-400">{stats.pending}</p>
-                </div>
-                <Clock className="w-8 h-8 text-yellow-400" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Disetujui</p>
-                  <p className="text-3xl font-bold text-green-400">{stats.approved}</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-green-400" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Revisi</p>
-                  <p className="text-3xl font-bold text-purple-400">{stats.revision}</p>
-                </div>
-                <AlertCircle className="w-8 h-8 text-purple-400" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Ditolak</p>
-                  <p className="text-3xl font-bold text-red-400">{stats.rejected}</p>
-                </div>
-                <XCircle className="w-8 h-8 text-red-400" />
-              </div>
-            </CardContent>
-          </Card>
+          {isLoading ? (
+            <DashboardStatsSkeleton />
+          ) : (
+            <>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Total Usulan</p>
+                      <p className="text-3xl font-bold text-white">{stats.total}</p>
+                    </div>
+                    <FileText className="w-8 h-8 text-blue-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Menunggu</p>
+                      <p className="text-3xl font-bold text-yellow-400">{stats.pending}</p>
+                    </div>
+                    <Clock className="w-8 h-8 text-yellow-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Disetujui</p>
+                      <p className="text-3xl font-bold text-green-400">{stats.approved}</p>
+                    </div>
+                    <CheckCircle className="w-8 h-8 text-green-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Revisi</p>
+                      <p className="text-3xl font-bold text-purple-400">{stats.revision}</p>
+                    </div>
+                    <AlertCircle className="w-8 h-8 text-purple-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Ditolak</p>
+                      <p className="text-3xl font-bold text-red-400">{stats.rejected}</p>
+                    </div>
+                    <XCircle className="w-8 h-8 text-red-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </motion.div>
 
         <motion.div
