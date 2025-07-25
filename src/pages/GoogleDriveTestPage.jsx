@@ -31,6 +31,7 @@ const GoogleDriveTestPage = () => {
   const [testResults, setTestResults] = useState({});
   const [isRunningTests, setIsRunningTests] = useState(false);
   const [testLog, setTestLog] = useState([]);
+  const [activeTab, setActiveTab] = useState('test');
 
   const addToLog = (message, type = 'info') => {
     const logEntry = {
