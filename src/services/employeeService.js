@@ -99,7 +99,7 @@ class EmployeeService {
 
             submissionsWithProfiles = submissionsResult.data.map(submission => ({
               ...submission,
-              submitter: profileMap[submission.submitted_by] || null
+              submitter: profileMap[submission.user_id] || null
             }));
           } else {
             submissionsWithProfiles = submissionsResult.data;
