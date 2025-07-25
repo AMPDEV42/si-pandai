@@ -121,16 +121,28 @@ export const deletePegawai = async (id) => {
 
 // Fungsi untuk menghitung masa kerja
 const hitungMasaKerja = (tmt) => {
+  if (!tmt) return { tahun: 0, bulan: 0 };
+
   const tmtDate = new Date(tmt);
   const today = new Date();
-  
+
+  // Validate dates
+  if (isNaN(tmtDate.getTime()) || tmtDate > today) {
+    return { tahun: 0, bulan: 0 };
+  }
+
   let years = today.getFullYear() - tmtDate.getFullYear();
   let months = today.getMonth() - tmtDate.getMonth();
-  
+
   if (months < 0 || (months === 0 && today.getDate() < tmtDate.getDate())) {
     years--;
     months += 12;
   }
-  
-  return { tahun: years, bulan: months };
+
+  // Handle negative months
+  if (months < 0) {
+    months = 0;
+  }
+
+  return { tahun: Math.max(0, years), bulan: Math.max(0, months) };
 };
