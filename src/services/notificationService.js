@@ -10,7 +10,6 @@ export const sendNotification = async ({ userId, title, message, type = 'info', 
         user_id: userId,
         title,
         message,
-        type,
         link,
         is_read: false,
       }
