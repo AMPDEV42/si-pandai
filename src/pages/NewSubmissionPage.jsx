@@ -599,28 +599,28 @@ const NewSubmissionPage = () => {
 
   console.log('Rendering main content');
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-3">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
             Buat Usulan Baru
           </h1>
-          <p className="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto">
+          <p className="text-gray-300 text-xs sm:text-sm max-w-2xl mx-auto">
             Pilih jenis pengajuan yang sesuai dengan kebutuhan Anda. Pastikan Anda telah mempersiapkan semua dokumen yang dibutuhkan.
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {Object.entries(categories).map(([category, types]) => (
             <div key={category} className="space-y-2">
               <button
                 onClick={() => toggleCategory(category)}
-                className="flex items-center text-lg font-semibold text-white hover:text-blue-400 transition-colors group w-full px-4 py-2 rounded-lg hover:bg-gray-800/50"
+                className="flex items-center text-base font-medium text-white hover:text-blue-400 transition-colors group w-full px-3 py-1.5 rounded-lg hover:bg-gray-800/50"
               >
                 {expandedCategories[category] ? (
-                  <ChevronDown className="h-5 w-5 mr-2 text-blue-400 group-hover:text-blue-300 transition-colors" />
+                  <ChevronDown className="h-4 w-4 mr-2 text-blue-400 group-hover:text-blue-300 transition-colors" />
                 ) : (
-                  <ChevronUp className="h-5 w-5 mr-2 text-blue-400 group-hover:text-blue-300 transition-colors" />
+                  <ChevronUp className="h-4 w-4 mr-2 text-blue-400 group-hover:text-blue-300 transition-colors" />
                 )}
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                   {category}
@@ -628,7 +628,7 @@ const NewSubmissionPage = () => {
               </button>
               
               {expandedCategories[category] && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {types.map((type) => (
                     <motion.div
                       key={type.id}
@@ -637,17 +637,17 @@ const NewSubmissionPage = () => {
                       className="h-full"
                     >
                       <Card
-                        className="cursor-pointer h-full bg-gray-800/50 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-200 shadow-lg hover:shadow-xl hover:shadow-blue-500/10"
+                        className="cursor-pointer h-full bg-gray-800/50 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-200 shadow hover:shadow-md hover:shadow-blue-500/10"
                         onClick={(e) => handleCardClick(e, type.id)}
                       >
-                        <CardHeader className="pb-3">
+                        <CardHeader className="p-4">
                           <div className="flex items-center justify-between">
-                            <CardTitle className="text-white text-lg">{type.title}</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                              <FileText className="h-4 w-4 text-blue-400" />
+                            <CardTitle className="text-white text-sm font-medium">{type.title}</CardTitle>
+                            <div className="h-7 w-7 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                              <FileText className="h-3.5 w-3.5 text-blue-400" />
                             </div>
                           </div>
-                          <CardDescription className="text-gray-300 text-sm mt-2 line-clamp-2">
+                          <CardDescription className="text-gray-300 text-xs mt-1.5 line-clamp-2">
                             {type.description}
                           </CardDescription>
                         </CardHeader>
