@@ -245,21 +245,23 @@ class EmployeeService {
 
   /**
    * Get employee statistics
+   * Temporarily using profiles table until employees table is created
    */
   async getEmployeeStats() {
     return withErrorHandling(async () => {
       const { data, error } = await supabase
-        .from('employees')
-        .select('status, unit_kerja');
+        .from('profiles')
+        .select('unit_kerja, role');
 
       if (error) throw error;
 
       const stats = {
         total: data.length,
-        active: data.filter(emp => emp.status === 'active').length,
-        inactive: data.filter(emp => emp.status === 'inactive').length,
-        byUnit: data.reduce((acc, emp) => {
-          acc[emp.unit_kerja] = (acc[emp.unit_kerja] || 0) + 1;
+        active: data.length, // All profiles are considered active
+        inactive: 0,
+        byUnit: data.reduce((acc, profile) => {
+          const unit = profile.unit_kerja || 'N/A';
+          acc[unit] = (acc[unit] || 0) + 1;
           return acc;
         }, {})
       };
