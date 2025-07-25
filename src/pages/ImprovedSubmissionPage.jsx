@@ -396,7 +396,12 @@ const ImprovedSubmissionPage = () => {
                 {submissionType.requirements?.map((requirement, index) => (
                   <RequirementUpload
                     key={`requirement-${index}`}
-                    requirement={{ id: `req-${index}`, title: requirement }}
+                    requirement={{
+                      id: `req-${index}`,
+                      title: requirement,
+                      required: true,
+                      description: `Upload dokumen ${requirement} dalam format PDF, DOC, DOCX, JPG, atau PNG (maksimal 5MB)`
+                    }}
                     uploadedFile={uploadedFiles[`req-${index}`]}
                     onFileUpload={handleFileUpload}
                     onFileRemove={handleFileRemove}
