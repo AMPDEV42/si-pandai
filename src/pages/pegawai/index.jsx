@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Eye, User, Building2, Calendar } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, User, Building2, Calendar, Search, Filter } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Badge } from '../../components/ui/badge';
 import { format, parseISO, subDays } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { motion } from 'framer-motion';
