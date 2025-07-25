@@ -182,6 +182,14 @@ const AppContent = () => {
             ),
           },
           {
+            path: "/test/google-drive",
+            element: (
+              <ProtectedRoute allowedRoles={['admin-master', 'admin-unit']}>
+                <GoogleDriveTestPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
             path: "/",
             element: <InitialRedirect />,
           },
