@@ -215,15 +215,29 @@ class EmployeeService {
 
   /**
    * Search employees
+   * Temporarily using profiles table until employees table is created
    */
   async searchEmployees(searchTerm, limit = 10) {
     return withErrorHandling(async () => {
-      const result = await supabase
-        .from('employees')
-        .select('id, full_name, nip, unit_kerja, position')
+      let query = supabase
+        .from('profiles')
+        .select('id, full_name, nip, unit_kerja, email')
         .or(`full_name.ilike.%${searchTerm}%,nip.ilike.%${searchTerm}%`)
         .limit(limit)
         .order('full_name', { ascending: true });
+
+      const result = await query;
+
+      // Transform profiles data to employee format
+      if (result.data) {
+        result.data = result.data.map(profile => ({
+          id: profile.id,
+          full_name: profile.full_name || profile.email,
+          nip: profile.nip || 'N/A',
+          unit_kerja: profile.unit_kerja || 'N/A',
+          position: 'N/A' // Will be available when employees table is created
+        }));
+      }
 
       return result;
     }, `searchEmployees: ${searchTerm}`);
