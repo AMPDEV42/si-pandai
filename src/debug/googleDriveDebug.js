@@ -24,7 +24,7 @@ export const debugGoogleDrive = async () => {
     isHTTPS: window.location.protocol === 'https:'
   });
 
-  // 2. Check if Google API script can be loaded
+  // 3. Check if Google API script can be loaded
   try {
     console.log('📡 Loading Google API script...');
     await loadGoogleAPIScript();
@@ -34,18 +34,25 @@ export const debugGoogleDrive = async () => {
     return;
   }
 
-  // 3. Check if gapi is available
+  // 4. Check if gapi is available
   if (!window.gapi) {
     console.error('❌ window.gapi is not available after script load');
     return;
   }
   console.log('✅ window.gapi is available');
 
-  // 4. Try to load gapi modules
+  // 5. Try to load gapi modules
   try {
     console.log('🔧 Loading GAPI modules...');
     await new Promise((resolve, reject) => {
-      window.gapi.load('client:auth2', resolve, reject);
+      const timeout = setTimeout(() => reject(new Error('GAPI load timeout')), 10000);
+      window.gapi.load('client:auth2', () => {
+        clearTimeout(timeout);
+        resolve();
+      }, (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
     });
     console.log('✅ GAPI modules loaded successfully');
   } catch (error) {
@@ -53,14 +60,12 @@ export const debugGoogleDrive = async () => {
     return;
   }
 
-  // 5. Try to initialize gapi client
+  // 6. Try to initialize gapi client (without auth parameters)
   try {
     console.log('🔧 Initializing GAPI client...');
     await window.gapi.client.init({
       apiKey: config.googleDrive.apiKey,
-      clientId: config.googleDrive.clientId,
-      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-      scope: 'https://www.googleapis.com/auth/drive.file'
+      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
     });
     console.log('✅ GAPI client initialized successfully');
   } catch (error) {
@@ -75,7 +80,27 @@ export const debugGoogleDrive = async () => {
     return;
   }
 
-  // 6. Check auth2 instance
+  // 7. Try to initialize auth2 separately
+  try {
+    console.log('🔧 Initializing Auth2...');
+    await window.gapi.auth2.init({
+      client_id: config.googleDrive.clientId,
+      scope: 'https://www.googleapis.com/auth/drive.file'
+    });
+    console.log('✅ Auth2 initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize Auth2:', error);
+    console.error('Auth2 Error details:', {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      stack: error?.stack
+    });
+    return;
+  }
+
+  // 8. Check auth2 instance
   try {
     const authInstance = window.gapi.auth2.getAuthInstance();
     if (authInstance) {
