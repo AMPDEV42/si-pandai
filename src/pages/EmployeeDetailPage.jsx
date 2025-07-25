@@ -92,6 +92,29 @@ const EmployeeDetailPage = () => {
     });
   };
 
+  const calculateMasaKerja = (startDate) => {
+    if (!startDate) return '0 tahun 0 bulan';
+
+    const start = new Date(startDate);
+    const today = new Date();
+
+    if (isNaN(start.getTime()) || start > today) {
+      return '0 tahun 0 bulan';
+    }
+
+    let years = today.getFullYear() - start.getFullYear();
+    let months = today.getMonth() - start.getMonth();
+
+    if (months < 0 || (months === 0 && today.getDate() < start.getDate())) {
+      years--;
+      months += 12;
+    }
+
+    if (months < 0) months = 0;
+
+    return `${Math.max(0, years)} tahun ${Math.max(0, months)} bulan`;
+  };
+
   const getStatusColor = (status) => {
     return STATUS_COLORS[status] || 'bg-gray-500';
   };
