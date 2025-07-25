@@ -5,6 +5,7 @@
 
 import { config } from '../config/environment';
 import { apiLogger } from '../lib/logger';
+import { checkDomainAuthorization, formatDomainReport } from '../utils/domainChecker';
 
 export const debugGoogleDrive = async () => {
   console.log('🔍 Starting Google Drive Debug...');
