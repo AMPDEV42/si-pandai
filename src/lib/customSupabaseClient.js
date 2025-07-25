@@ -155,6 +155,93 @@ export const withErrorHandling = async (operation, context = '') => {
   throw lastError;
 };
 
+// Network connectivity checker
+export const checkNetworkConnectivity = async () => {
+  try {
+    // Try to fetch from multiple sources to check connectivity
+    const promises = [
+      fetch('https://httpbin.org/status/200', { method: 'HEAD' }),
+      fetch('https://jsonplaceholder.typicode.com/posts/1', { method: 'HEAD' }),
+      fetch('https://api.github.com', { method: 'HEAD' })
+    ];
+
+    const results = await Promise.allSettled(promises);
+    const successCount = results.filter(result => result.status === 'fulfilled').length;
+
+    return {
+      isOnline: successCount > 0,
+      connectivity: successCount / promises.length,
+      details: results.map((result, index) => ({
+        url: ['httpbin.org', 'jsonplaceholder.typicode.com', 'api.github.com'][index],
+        success: result.status === 'fulfilled',
+        error: result.reason?.message
+      }))
+    };
+  } catch (error) {
+    return {
+      isOnline: false,
+      connectivity: 0,
+      error: error.message
+    };
+  }
+};
+
+// Supabase health check
+export const checkSupabaseHealth = async () => {
+  try {
+    const startTime = Date.now();
+
+    // Simple health check - try to connect to auth
+    const { data, error } = await supabase.auth.getSession();
+    const duration = Date.now() - startTime;
+
+    if (error && !error.message.includes('session') && !error.message.includes('Auth session missing')) {
+      throw error;
+    }
+
+    return {
+      isHealthy: true,
+      responseTime: duration,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      isHealthy: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
+// Comprehensive connectivity diagnostics
+export const runConnectivityDiagnostics = async () => {
+  apiLogger.info('Running connectivity diagnostics...');
+
+  const [networkCheck, supabaseCheck] = await Promise.all([
+    checkNetworkConnectivity(),
+    checkSupabaseHealth()
+  ]);
+
+  const diagnostics = {
+    timestamp: new Date().toISOString(),
+    network: networkCheck,
+    supabase: supabaseCheck,
+    browser: {
+      userAgent: navigator.userAgent,
+      onLine: navigator.onLine,
+      cookieEnabled: navigator.cookieEnabled
+    },
+    environment: {
+      protocol: window.location.protocol,
+      host: window.location.host,
+      supabaseUrl: config.supabase.url
+    }
+  };
+
+  apiLogger.info('Connectivity diagnostics completed', diagnostics);
+  return diagnostics;
+};
+
 // Helper functions for common operations
 export const supabaseHelpers = {
   // Safe select with error handling
