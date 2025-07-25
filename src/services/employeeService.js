@@ -74,7 +74,7 @@ class EmployeeService {
         supabase
           .from('submissions')
           .select('*')
-          .eq('submitted_by', id)
+          .eq('user_id', id)
           .order('created_at', { ascending: false })
       ]);
 
@@ -86,7 +86,7 @@ class EmployeeService {
 
       // Manually fetch submitter profiles if submissions exist
       if (submissionsResult.data && submissionsResult.data.length > 0) {
-        const userIds = [...new Set(submissionsResult.data.map(s => s.submitted_by).filter(Boolean))];
+        const userIds = [...new Set(submissionsResult.data.map(s => s.user_id).filter(Boolean))];
 
         if (userIds.length > 0) {
           const { data: profiles } = await supabase
