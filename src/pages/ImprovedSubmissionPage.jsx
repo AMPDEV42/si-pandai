@@ -393,9 +393,9 @@ const ImprovedSubmissionPage = () => {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {submissionType.requirements?.map((requirement) => (
+                {submissionType.requirements?.map((requirement, index) => (
                   <RequirementUpload
-                    key={requirement.id}
+                    key={`requirement-${index}`}
                     requirement={requirement}
                     uploadedFile={uploadedFiles[requirement.id]}
                     onFileUpload={handleFileUpload}
