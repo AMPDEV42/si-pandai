@@ -390,7 +390,7 @@ export default function DataPegawai() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-white/50">
-                      Tidak ada data pegawai
+                      {searchTerm ? `Tidak ada pegawai yang sesuai dengan "${searchTerm}"` : 'Tidak ada data pegawai'}
                     </TableCell>
                   </TableRow>
                 )}
