@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { useAuth } from '../contexts/SupabaseAuthContext';
+import { initializeSampleData } from '../lib/dataInitializer';
 import { 
   FileText, 
   Clock, 
@@ -39,20 +40,18 @@ const AdminMasterDashboard = () => {
   useEffect(() => {
     if (!user) return;
 
-    const savedSubmissions = localStorage.getItem('sipandai_submissions');
-    if (savedSubmissions) {
-      const allSubmissions = JSON.parse(savedSubmissions);
-      setSubmissions(allSubmissions);
-      
-      const newStats = {
-        total: allSubmissions.length,
-        pending: allSubmissions.filter(sub => sub.status === 'pending').length,
-        approved: allSubmissions.filter(sub => sub.status === 'approved').length,
-        rejected: allSubmissions.filter(sub => sub.status === 'rejected').length,
-        revision: allSubmissions.filter(sub => sub.status === 'revision').length
-      };
-      setStats(newStats);
-    }
+    // Initialize sample data if none exists
+    const allSubmissions = initializeSampleData();
+    setSubmissions(allSubmissions);
+
+    const newStats = {
+      total: allSubmissions.length,
+      pending: allSubmissions.filter(sub => sub.status === 'pending').length,
+      approved: allSubmissions.filter(sub => sub.status === 'approved').length,
+      rejected: allSubmissions.filter(sub => sub.status === 'rejected').length,
+      revision: allSubmissions.filter(sub => sub.status === 'revision').length
+    };
+    setStats(newStats);
   }, [user]);
 
   useEffect(() => {
