@@ -26,7 +26,7 @@ const AdminMasterDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
-  const [filteredSubmissions, setFilteredSubmissions] = useState([]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [stats, setStats] = useState({
@@ -54,11 +54,11 @@ const AdminMasterDashboard = () => {
     setStats(newStats);
   }, [user]);
 
-  useEffect(() => {
+  const filteredSubmissions = useMemo(() => {
     let filtered = submissions;
 
     if (searchTerm) {
-      filtered = filtered.filter(sub => 
+      filtered = filtered.filter(sub =>
         sub.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.submitterName.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -68,7 +68,7 @@ const AdminMasterDashboard = () => {
       filtered = filtered.filter(sub => sub.status === filterStatus);
     }
 
-    setFilteredSubmissions(filtered);
+    return filtered;
   }, [submissions, searchTerm, filterStatus]);
 
   const handleViewSubmission = useCallback((submissionId) => {
