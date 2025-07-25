@@ -109,45 +109,67 @@ const NotificationCenter = () => {
 
     loadNotifications();
 
-    const subscription = supabase
-      .channel('notifications')
-      .on('postgres_changes', 
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setNotifications(prev => [
-              { ...payload.new, isNew: true }, 
-              ...prev.filter(n => n.id !== payload.new.id)
-            ]);
-            setUnreadCount(prev => prev + 1);
-          } else if (payload.eventType === 'UPDATE') {
-            setNotifications(prev => 
-              prev.map(n => n.id === payload.new.id ? { ...payload.new, isNew: false } : n)
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
-            setUnreadCount(prev => Math.max(0, prev - 1));
-          }
+    // Only set up subscription if notifications table exists and is accessible
+    let subscription;
+
+    const setupSubscription = async () => {
+      try {
+        // Test if we can access notifications table
+        const { error: testError } = await supabase
+          .from('notifications')
+          .select('id')
+          .limit(1);
+
+        if (testError) {
+          console.warn('Notifications table not accessible, skipping subscription:', testError.message);
+          return;
         }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error('Error subscribing to notifications channel');
-          setError('Koneksi notifikasi terputus. Memuat ulang otomatis...');
-          // Auto retry after 5 seconds
-          setTimeout(() => {
-            loadNotifications();
-          }, 5000);
-        }
-      });
+
+        subscription = supabase
+          .channel(`notifications-${user.id}`)
+          .on('postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${user.id}`
+            },
+            (payload) => {
+              if (payload.eventType === 'INSERT') {
+                setNotifications(prev => [
+                  { ...payload.new, isNew: true },
+                  ...prev.filter(n => n.id !== payload.new.id)
+                ]);
+                setUnreadCount(prev => prev + 1);
+              } else if (payload.eventType === 'UPDATE') {
+                setNotifications(prev =>
+                  prev.map(n => n.id === payload.new.id ? { ...payload.new, isNew: false } : n)
+                );
+              } else if (payload.eventType === 'DELETE') {
+                setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
+                setUnreadCount(prev => Math.max(0, prev - 1));
+              }
+            }
+          )
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              console.log('Successfully subscribed to notifications');
+            } else if (status === 'CHANNEL_ERROR') {
+              console.error('Error subscribing to notifications channel');
+              // Don't show error to user for this non-critical feature
+            }
+          });
+      } catch (error) {
+        console.warn('Failed to setup notifications subscription:', error.message);
+      }
+    };
+
+    setupSubscription();
 
     return () => {
-      supabase.removeChannel(subscription);
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
     };
   }, [user?.id, loadNotifications]);
 
