@@ -396,11 +396,11 @@ const ImprovedSubmissionPage = () => {
                 {submissionType.requirements?.map((requirement, index) => (
                   <RequirementUpload
                     key={`requirement-${index}`}
-                    requirement={requirement}
-                    uploadedFile={uploadedFiles[requirement.id]}
+                    requirement={{ id: `req-${index}`, title: requirement }}
+                    uploadedFile={uploadedFiles[`req-${index}`]}
                     onFileUpload={handleFileUpload}
                     onFileRemove={handleFileRemove}
-                    isUploading={uploadingFiles[requirement.id]}
+                    isUploading={uploadingFiles[`req-${index}`]}
                   />
                 ))}
               </CardContent>
