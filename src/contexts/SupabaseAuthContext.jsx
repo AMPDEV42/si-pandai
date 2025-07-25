@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }) => {
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        // Don't throw error, just log it and continue with basic user data
       }
 
       // Combine user data with profile data
@@ -131,14 +132,18 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      // Kirim notifikasi login berhasil
+      // Kirim notifikasi login berhasil (with error handling)
       if (data?.user) {
-        await sendNotification({
-          userId: data.user.id,
-          title: 'Login Berhasil',
-          message: 'Anda berhasil masuk ke sistem SIPANDAI',
-          type: 'success'
-        });
+        try {
+          await sendNotification({
+            userId: data.user.id,
+            title: 'Login Berhasil',
+            message: 'Anda berhasil masuk ke sistem SIPANDAI'
+          });
+        } catch (notifError) {
+          console.error('Error sending login notification:', notifError);
+          // Don't block login flow if notification fails
+        }
       }
 
       toast({
