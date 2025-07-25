@@ -30,6 +30,7 @@ const AdminMasterDashboard = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
