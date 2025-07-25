@@ -123,12 +123,6 @@ const NotificationCenter = () => {
     return () => {
       clearInterval(pollInterval);
     };
-
-    return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
-    };
   }, [user?.id, loadNotifications]);
 
   const markAsRead = async (id, event) => {
