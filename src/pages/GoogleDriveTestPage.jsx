@@ -177,6 +177,19 @@ const GoogleDriveTestPage = () => {
     }
   };
 
+  const runDebugTest = async () => {
+    addToLog('Running detailed Google Drive debug...', 'info');
+
+    try {
+      await debugGoogleDrive();
+      addToLog('✓ Debug completed - check browser console for details', 'success');
+      return { success: true, message: 'Debug completed' };
+    } catch (error) {
+      addToLog(`✗ Debug failed: ${error.message}`, 'error');
+      return { success: false, message: error.message };
+    }
+  };
+
   const runAllTests = async () => {
     setIsRunningTests(true);
     setTestLog([]);
@@ -185,6 +198,7 @@ const GoogleDriveTestPage = () => {
     addToLog('Starting Google Drive integration tests...', 'info');
 
     const tests = [
+      { name: 'debug', test: runDebugTest },
       { name: 'configuration', test: runConfigurationTest },
       { name: 'initialization', test: runInitializationTest },
       { name: 'authentication', test: runAuthenticationTest },
