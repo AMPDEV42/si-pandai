@@ -44,28 +44,115 @@ export const supabase = createClient(
   supabaseConfig
 );
 
-// Error handling wrapper for Supabase operations
+// Retry configuration
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  initialDelay: 1000,
+  maxDelay: 5000,
+  backoffFactor: 2
+};
+
+// Check if error is retryable
+const isRetryableError = (error) => {
+  const retryableErrors = [
+    'Failed to fetch',
+    'Network request failed',
+    'TypeError: fetch failed',
+    'Connection reset',
+    'ECONNRESET',
+    'ENOTFOUND',
+    'ETIMEDOUT'
+  ];
+
+  const errorMessage = error?.message || error?.toString() || '';
+  return retryableErrors.some(retryableError =>
+    errorMessage.toLowerCase().includes(retryableError.toLowerCase())
+  );
+};
+
+// Sleep function for delays
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Enhanced error handling wrapper with retry logic
 export const withErrorHandling = async (operation, context = '') => {
-  try {
-    const startTime = Date.now();
-    const result = await operation();
-    const duration = Date.now() - startTime;
+  let lastError;
 
-    if (result.error) {
-      apiLogger.error(`Supabase operation failed: ${context}`, result.error);
-      throw new Error(result.error.message || 'Database operation failed');
+  for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+    try {
+      const startTime = Date.now();
+      const result = await operation();
+      const duration = Date.now() - startTime;
+
+      if (result.error) {
+        const error = new Error(result.error.message || 'Database operation failed');
+        error.supabaseError = result.error;
+
+        // Check if this is a retryable Supabase error
+        if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
+          const delay = Math.min(
+            RETRY_CONFIG.initialDelay * Math.pow(RETRY_CONFIG.backoffFactor, attempt),
+            RETRY_CONFIG.maxDelay
+          );
+
+          apiLogger.warn(`Supabase operation failed (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}): ${context}`, {
+            error: result.error,
+            retryIn: `${delay}ms`
+          });
+
+          await sleep(delay);
+          continue;
+        }
+
+        apiLogger.error(`Supabase operation failed: ${context}`, result.error);
+        throw error;
+      }
+
+      if (attempt > 0) {
+        apiLogger.info(`Supabase operation succeeded after ${attempt + 1} attempts: ${context}`, {
+          duration: `${duration}ms`,
+          count: result.data?.length || (result.data ? 1 : 0)
+        });
+      } else {
+        apiLogger.debug(`Supabase operation completed: ${context}`, {
+          duration: `${duration}ms`,
+          count: result.data?.length || (result.data ? 1 : 0)
+        });
+      }
+
+      return result;
+    } catch (error) {
+      lastError = error;
+
+      // Check if this is a retryable network error
+      if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
+        const delay = Math.min(
+          RETRY_CONFIG.initialDelay * Math.pow(RETRY_CONFIG.backoffFactor, attempt),
+          RETRY_CONFIG.maxDelay
+        );
+
+        apiLogger.warn(`Network error on attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}: ${context}`, {
+          error: error.message,
+          retryIn: `${delay}ms`,
+          isNetworkError: true
+        });
+
+        await sleep(delay);
+        continue;
+      }
+
+      // Final attempt failed or non-retryable error
+      break;
     }
-
-    apiLogger.debug(`Supabase operation completed: ${context}`, {
-      duration: `${duration}ms`,
-      count: result.data?.length || (result.data ? 1 : 0)
-    });
-
-    return result;
-  } catch (error) {
-    apiLogger.error(`Supabase operation error: ${context}`, error);
-    throw error;
   }
+
+  // All retries exhausted
+  apiLogger.error(`Supabase operation error after ${RETRY_CONFIG.maxRetries + 1} attempts: ${context}`, {
+    error: lastError.message,
+    stack: lastError.stack,
+    isNetworkError: isRetryableError(lastError)
+  });
+
+  throw lastError;
 };
 
 // Helper functions for common operations
