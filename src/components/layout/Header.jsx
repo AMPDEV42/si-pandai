@@ -1,9 +1,9 @@
 import React from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { UserCircle, PlusCircle, Menu } from 'lucide-react';
-import { useSidebar } from '@/contexts/SidebarContext';
-import { Button } from '@/components/ui/button';
-import NotificationCenter from '@/components/notifications/NotificationCenter';
+import { useSidebar } from '../../contexts/SidebarContext';
+import { Button } from '../ui/button';
+import NotificationCenter from '../notifications/NotificationCenter';
 import { Link } from 'react-router-dom';
 
 const Header = () => {
@@ -36,8 +36,8 @@ const Header = () => {
         <div className="flex items-center gap-3">
           <UserCircle className="w-8 h-8 text-gray-400" />
           <div className="text-right">
-            <p className="text-sm font-medium text-white">{user?.name}</p>
-            <p className="text-xs text-gray-400">{user?.unitKerja || 'Administrator'}</p>
+            <p className="text-sm font-medium text-white">{user?.name || user?.email}</p>
+            <p className="text-xs text-gray-400">{user?.unitKerja || user?.role?.replace('-', ' ') || 'Administrator'}</p>
           </div>
         </div>
       </div>
