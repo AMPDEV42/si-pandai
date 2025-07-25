@@ -12,6 +12,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { employeeService } from '../../services/employeeService';
 import { apiLogger } from '../../lib/logger';
+import NetworkErrorHandler from '../common/NetworkErrorHandler';
 
 const EmployeeSelection = ({ selectedEmployee, onEmployeeSelect, className = '' }) => {
   const [employees, setEmployees] = useState([]);
