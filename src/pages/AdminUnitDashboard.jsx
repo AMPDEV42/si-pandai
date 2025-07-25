@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../contexts/SupabaseAuthContext';
 import { getSubmissionsByCategory } from '../data/submissionTypes';
-import { initializeSampleData } from '../lib/dataInitializer';
+import { submissionService } from '../services/submissionService';
+import { apiLogger } from '../lib/logger';
 import { 
   Plus, 
   FileText, 
@@ -23,6 +24,8 @@ const AdminUnitDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -36,20 +39,52 @@ const AdminUnitDashboard = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Initialize sample data if none exists
-    const allSubmissions = initializeSampleData();
-    // For demo purposes, show all submissions for admin unit dashboard
-    const userSubmissions = user?.role === 'admin-unit' ? allSubmissions.slice(0, 3) : allSubmissions.filter(sub => sub.submittedBy === user.id);
-    setSubmissions(userSubmissions);
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-    const newStats = {
-      total: userSubmissions.length,
-      pending: userSubmissions.filter(sub => sub.status === 'pending').length,
-      approved: userSubmissions.filter(sub => sub.status === 'approved').length,
-      rejected: userSubmissions.filter(sub => sub.status === 'rejected').length,
-      revision: userSubmissions.filter(sub => sub.status === 'revision').length
+        // For admin-unit, show their unit's submissions
+        // For regular users, show only their own submissions
+        const filters = user.role === 'admin-unit'
+          ? { unitKerja: user.unit_kerja || user.unitKerja, limit: 20 }
+          : { submittedBy: user.id, limit: 20 };
+
+        const [submissionsResult, statsResult] = await Promise.all([
+          submissionService.getSubmissions(filters),
+          submissionService.getSubmissionStats(filters)
+        ]);
+
+        if (submissionsResult.error) {
+          throw new Error(submissionsResult.error.message);
+        }
+
+        if (statsResult.error) {
+          throw new Error(statsResult.error.message);
+        }
+
+        setSubmissions(submissionsResult.data || []);
+        setStats(statsResult.data || {
+          total: 0, pending: 0, approved: 0, rejected: 0, revision: 0
+        });
+
+        apiLogger.info('Unit dashboard data loaded successfully', {
+          userId: user.id,
+          role: user.role,
+          submissionsCount: submissionsResult.data?.length || 0
+        });
+
+      } catch (err) {
+        apiLogger.error('Failed to load unit dashboard data', err);
+        setError('Gagal memuat data dashboard. Silakan coba lagi.');
+        setSubmissions([]);
+        setStats({ total: 0, pending: 0, approved: 0, rejected: 0, revision: 0 });
+      } finally {
+        setIsLoading(false);
+      }
     };
-    setStats(newStats);
+
+    loadData();
   }, [user]);
 
   const handleNewSubmission = useCallback((typeId) => {
