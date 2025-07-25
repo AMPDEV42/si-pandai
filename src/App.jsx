@@ -30,6 +30,7 @@ import NewSubmissionPage from './pages/NewSubmissionPage';
 import ImprovedSubmissionPage from './pages/ImprovedSubmissionPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import DataPegawai from './pages/pegawai/index.jsx';
+import GoogleDriveTestPage from './pages/GoogleDriveTestPage';
 
 // Component to handle initial redirect
 const InitialRedirect = () => {
