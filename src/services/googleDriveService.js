@@ -198,18 +198,30 @@ class GoogleDriveService {
       return true;
 
     } catch (error) {
+      const errorDetails = {
+        name: error?.name || 'Unknown',
+        message: error?.message || 'No message',
+        code: error?.error || error?.code || 'unknown',
+        details: error?.details || 'No details',
+        stack: error?.stack || 'No stack trace',
+        stringified: error?.toString() || 'Cannot stringify error'
+      };
+
       apiLogger.error('Google Drive authentication failed', {
-        error: error.message,
-        code: error.error || 'unknown'
+        error: errorDetails
       });
-      
+
       // Handle specific error cases
-      if (error.error === 'popup_blocked_by_browser') {
+      if (errorDetails.code === 'popup_blocked_by_browser') {
         throw new Error('Popup diblokir browser. Pastikan popup diizinkan untuk website ini.');
-      } else if (error.error === 'access_denied') {
+      } else if (errorDetails.code === 'access_denied') {
         throw new Error('Akses ditolak. Silakan berikan izin untuk mengakses Google Drive.');
+      } else if (errorDetails.code === 'popup_closed_by_user') {
+        throw new Error('Popup ditutup oleh user. Silakan coba lagi dan selesaikan proses login.');
+      } else if (errorDetails.message && errorDetails.message !== 'No message') {
+        throw new Error(`Gagal melakukan autentikasi Google Drive: ${errorDetails.message}`);
       } else {
-        throw new Error(`Gagal melakukan autentikasi Google Drive: ${error.message}`);
+        throw new Error(`Gagal melakukan autentikasi Google Drive: ${errorDetails.code || 'Unknown error'}`);
       }
     }
   }
