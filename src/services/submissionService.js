@@ -147,16 +147,21 @@ class SubmissionService {
       const result = await supabase
         .from('submissions')
         .insert([submission])
-        .select(`
-          *,
-          submitter:profiles!submitted_by(
-            id,
-            full_name,
-            email,
-            unit_kerja
-          )
-        `)
+        .select('*')
         .single();
+
+      // Manually fetch submitter profile
+      if (result.data && result.data.submitted_by) {
+        const { data: submitter } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, unit_kerja')
+          .eq('id', result.data.submitted_by)
+          .single();
+
+        if (submitter) {
+          result.data.submitter = submitter;
+        }
+      }
 
       apiLogger.info('New submission created', {
         submissionId: result.data?.id,
