@@ -30,12 +30,19 @@ export default function DataPegawai() {
   const [formData, setFormData] = useState({
     nama: '',
     nip: '',
-    pangkatGolongan: '',
+    email: '',
     tempatLahir: '',
     tanggalLahir: '',
+    jenisKelamin: '',
+    statusKepegawaian: 'PNS',
+    jenisJabatan: 'Jabatan Fungsional',
+    pangkatGolongan: '',
     tmt: '',
     jabatan: '',
     unitKerja: '',
+    pendidikanTerakhir: '',
+    alamat: '',
+    noHp: '',
     riwayatDiklat: []
   });
 
@@ -99,19 +106,26 @@ export default function DataPegawai() {
   };
 
   const handleEdit = (pegawai) => {
+    setIsEditMode(true);
     setFormData({
       id: pegawai.id,
-      nama: pegawai.nama || pegawai.full_name || '',
+      nama: pegawai.nama || '',
       nip: pegawai.nip || '',
-      pangkatGolongan: pegawai.pangkatGolongan || pegawai.pangkat_golongan || pegawai.pangkat || '',
-      tempatLahir: pegawai.tempatLahir || pegawai.tempat_lahir || pegawai.birth_place || '',
-      tanggalLahir: pegawai.tanggalLahir || (pegawai.tanggal_lahir ? format(parseISO(pegawai.tanggal_lahir), 'yyyy-MM-dd') : ''),
-      tmt: pegawai.tmt ? format(parseISO(pegawai.tmt), 'yyyy-MM-dd') : '',
-      jabatan: pegawai.jabatan || pegawai.position || '',
-      unitKerja: pegawai.unitKerja || pegawai.unit_kerja || pegawai.unit || '',
+      email: pegawai.email || '',
+      tempatLahir: pegawai.tempatLahir || '',
+      tanggalLahir: pegawai.tanggalLahir ? format(new Date(pegawai.tanggalLahir), 'yyyy-MM-dd') : '',
+      jenisKelamin: pegawai.jenisKelamin || '',
+      statusKepegawaian: pegawai.statusKepegawaian || 'PNS',
+      jenisJabatan: pegawai.jenisJabatan || 'Jabatan Fungsional',
+      pangkatGolongan: pegawai.pangkatGolongan || '',
+      tmt: pegawai.tmt ? format(new Date(pegawai.tmt), 'yyyy-MM-dd') : '',
+      jabatan: pegawai.jabatan || '',
+      unitKerja: pegawai.unitKerja || '',
+      pendidikanTerakhir: pegawai.pendidikanTerakhir || '',
+      alamat: pegawai.alamat || '',
+      noHp: pegawai.noHp || '',
       riwayatDiklat: pegawai.riwayatDiklat || []
     });
-    setIsEditMode(true);
     setIsDialogOpen(true);
   };
 
@@ -131,12 +145,19 @@ export default function DataPegawai() {
     setFormData({
       nama: '',
       nip: '',
-      pangkatGolongan: '',
+      email: '',
       tempatLahir: '',
       tanggalLahir: '',
+      jenisKelamin: '',
+      statusKepegawaian: 'PNS',
+      jenisJabatan: 'Jabatan Fungsional',
+      pangkatGolongan: '',
       tmt: '',
       jabatan: '',
       unitKerja: '',
+      pendidikanTerakhir: '',
+      alamat: '',
+      noHp: '',
       riwayatDiklat: []
     });
     setIsEditMode(false);
@@ -185,7 +206,7 @@ export default function DataPegawai() {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nama">Nama Lengkap</Label>
                   <Input
@@ -207,11 +228,12 @@ export default function DataPegawai() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="pangkatGolongan">Pangkat/Golongan</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="pangkatGolongan"
-                    name="pangkatGolongan"
-                    value={formData.pangkatGolongan || ''}
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
                     onChange={handleInputChange}
                     required
                   />
@@ -221,7 +243,7 @@ export default function DataPegawai() {
                   <Input
                     id="tempatLahir"
                     name="tempatLahir"
-                    value={formData.tempatLahir || ''}
+                    value={formData.tempatLahir}
                     onChange={handleInputChange}
                     required
                   />
@@ -233,6 +255,63 @@ export default function DataPegawai() {
                     name="tanggalLahir"
                     type="date"
                     value={formData.tanggalLahir}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="jenisKelamin">Jenis Kelamin</Label>
+                  <select
+                    id="jenisKelamin"
+                    name="jenisKelamin"
+                    value={formData.jenisKelamin}
+                    onChange={handleInputChange}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
+                  >
+                    <option value="">Pilih Jenis Kelamin</option>
+                    <option value="Laki-laki">Laki-laki</option>
+                    <option value="Perempuan">Perempuan</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="statusKepegawaian">Status Kepegawaian</Label>
+                  <select
+                    id="statusKepegawaian"
+                    name="statusKepegawaian"
+                    value={formData.statusKepegawaian}
+                    onChange={handleInputChange}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
+                  >
+                    <option value="PNS">PNS</option>
+                    <option value="PPPK">PPPK</option>
+                    <option value="Honorer">Honorer</option>
+                    <option value="Kontrak">Kontrak</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="jenisJabatan">Jenis Jabatan</Label>
+                  <select
+                    id="jenisJabatan"
+                    name="jenisJabatan"
+                    value={formData.jenisJabatan}
+                    onChange={handleInputChange}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
+                  >
+                    <option value="Jabatan Struktural">Jabatan Struktural</option>
+                    <option value="Jabatan Fungsional">Jabatan Fungsional</option>
+                    <option value="Jabatan Pelaksana">Jabatan Pelaksana</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pangkatGolongan">Pangkat/Golongan</Label>
+                  <Input
+                    id="pangkatGolongan"
+                    name="pangkatGolongan"
+                    value={formData.pangkatGolongan}
                     onChange={handleInputChange}
                     required
                   />
@@ -263,8 +342,54 @@ export default function DataPegawai() {
                   <Input
                     id="unitKerja"
                     name="unitKerja"
-                    value={formData.unitKerja || ''}
+                    value={formData.unitKerja}
                     onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pendidikanTerakhir">Pendidikan Terakhir</Label>
+                  <select
+                    id="pendidikanTerakhir"
+                    name="pendidikanTerakhir"
+                    value={formData.pendidikanTerakhir}
+                    onChange={handleInputChange}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    required
+                  >
+                    <option value="">Pilih Pendidikan Terakhir</option>
+                    <option value="SD">SD</option>
+                    <option value="SMP">SMP</option>
+                    <option value="SMA/SMK">SMA/SMK</option>
+                    <option value="D1">D1</option>
+                    <option value="D2">D2</option>
+                    <option value="D3">D3</option>
+                    <option value="D4">D4</option>
+                    <option value="S1">S1</option>
+                    <option value="S2">S2</option>
+                    <option value="S3">S3</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="noHp">Nomor HP</Label>
+                  <Input
+                    id="noHp"
+                    name="noHp"
+                    type="tel"
+                    value={formData.noHp}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="alamat">Alamat Lengkap</Label>
+                  <textarea
+                    id="alamat"
+                    name="alamat"
+                    value={formData.alamat}
+                    onChange={handleInputChange}
+                    rows="3"
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     required
                   />
                 </div>

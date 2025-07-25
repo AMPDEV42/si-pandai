@@ -20,7 +20,12 @@ import {
   MapPin,
   GraduationCap,
   Heart,
-  Users
+  Users,
+  BookOpen,
+  Briefcase,
+  UserCheck,
+  Home,
+  Bookmark
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -259,139 +264,202 @@ const EmployeeDetailPage = () => {
       >
         {activeTab === 'profile' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Personal Information */}
-            <Card className="glass-effect border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Informasi Personal
-                </CardTitle>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Informasi Pribadi</CardTitle>
+                <User className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CardContent className="space-y-3">
+                <div className="flex items-start">
+                  <Mail className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <label className="text-gray-400 text-sm">Nama Lengkap</label>
-                    <p className="text-white font-medium">{employee.full_name}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">NIP</label>
-                    <p className="text-white font-medium">{employee.nip}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Email</label>
-                    <p className="text-white">{employee.email || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Telepon</label>
-                    <p className="text-white">{employee.phone || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Tempat Lahir</label>
-                    <p className="text-white">{employee.birth_place || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Tanggal Lahir</label>
-                    <p className="text-white">{formatDate(employee.birth_date)}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Jenis Kelamin</label>
-                    <p className="text-white">
-                      {employee.gender === 'L' ? 'Laki-laki' : employee.gender === 'P' ? 'Perempuan' : 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Status</label>
-                    <Badge className={`${employee.status === 'active' ? 'bg-green-500' : 'bg-gray-500'} text-white`}>
-                      {employee.status === 'active' ? 'Aktif' : 'Non-Aktif'}
-                    </Badge>
+                    <p className="text-sm font-medium">Email</p>
+                    <p className="text-sm">{employee.email || 'Tidak ada data'}</p>
                   </div>
                 </div>
-                {employee.address && (
+                <div className="flex items-start">
+                  <Phone className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <label className="text-gray-400 text-sm">Alamat</label>
-                    <p className="text-white">{employee.address}</p>
+                    <p className="text-sm font-medium">No. HP</p>
+                    <p className="text-sm">{employee.noHp || 'Tidak ada data'}</p>
                   </div>
-                )}
+                </div>
+                <div className="flex items-start">
+                  <MapPin className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Tempat, Tanggal Lahir</p>
+                    <p className="text-sm">
+                      {employee.tempatLahir || 'Tidak ada data'}, 
+                      {employee.tanggalLahir ? new Date(employee.tanggalLahir).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      }) : 'Tidak ada data'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <Heart className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Jenis Kelamin</p>
+                    <p className="text-sm">{employee.jenisKelamin || 'Tidak ada data'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <Home className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Alamat</p>
+                    <p className="text-sm whitespace-pre-line">{employee.alamat || 'Tidak ada data'}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             {/* Employment Information */}
-            <Card className="glass-effect border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
-                  Informasi Kepegawaian
-                </CardTitle>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Informasi Kepegawaian</CardTitle>
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CardContent className="space-y-3">
+                <div className="flex items-start">
+                  <BadgeIcon className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <label className="text-gray-400 text-sm">Unit Kerja</label>
-                    <p className="text-white font-medium">{employee.unit_kerja}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Jabatan</label>
-                    <p className="text-white">{employee.position || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Pangkat/Golongan</label>
-                    <p className="text-white">{employee.rank || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Jenis Pegawai</label>
-                    <p className="text-white">{employee.employee_type || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">TMT/Mulai Bekerja</label>
-                    <p className="text-white">{formatDate(employee.tmt || employee.work_start_date)}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Masa Kerja</label>
-                    <p className="text-white">{calculateMasaKerja(employee.tmt || employee.work_start_date)}</p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm">Pendidikan Terakhir</label>
-                    <p className="text-white">{employee.last_education || 'N/A'}</p>
+                    <p className="text-sm font-medium">NIP</p>
+                    <p className="text-sm">{employee.nip || 'Tidak ada data'}</p>
                   </div>
                 </div>
-                {employee.education_major && (
+                <div className="flex items-start">
+                  <UserCheck className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <label className="text-gray-400 text-sm">Jurusan</label>
-                    <p className="text-white">{employee.education_major}</p>
+                    <p className="text-sm font-medium">Status Kepegawaian</p>
+                    <p className="text-sm">{employee.statusKepegawaian || 'Tidak ada data'}</p>
                   </div>
-                )}
+                </div>
+                <div className="flex items-start">
+                  <Bookmark className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Jenis Jabatan</p>
+                    <p className="text-sm">{employee.jenisJabatan || 'Tidak ada data'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <GraduationCap className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Pendidikan Terakhir</p>
+                    <p className="text-sm">{employee.pendidikanTerakhir || 'Tidak ada data'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <Building2 className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Unit Kerja</p>
+                    <p className="text-sm">{employee.unitKerja || employee.unit_kerja || 'Tidak ada data'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <Calendar className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">TMT</p>
+                    <p className="text-sm">
+                      {employee.tmt ? new Date(employee.tmt).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      }) : 'Tidak ada data'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <BookOpen className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Pangkat/Golongan</p>
+                    <p className="text-sm">{employee.pangkatGolongan || employee.pangkat_golongan || 'Tidak ada data'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'diklat' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" />
+                  Riwayat Diklat
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Unit Kerja</label>
+                    <p className="text-sm">{employee.unitKerja || employee.unit_kerja || 'Tidak ada data'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Jabatan</label>
+                    <p className="text-sm">{employee.jabatan || 'Tidak ada data'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Pangkat/Golongan</label>
+                    <p className="text-sm">{employee.pangkatGolongan || employee.pangkat_golongan || 'Tidak ada data'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Jenis Jabatan</label>
+                    <p className="text-sm">{employee.jenisJabatan || 'Tidak ada data'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">TMT</label>
+                    <p className="text-sm">
+                      {employee.tmt ? new Date(employee.tmt).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      }) : 'Tidak ada data'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Masa Kerja</label>
+                    <p className="text-sm">{employee.tmt ? calculateMasaKerja(employee.tmt) : 'Tidak ada data'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Pendidikan Terakhir</label>
+                    <p className="text-sm">{employee.pendidikanTerakhir || 'Tidak ada data'}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Family Information */}
-            {(employee.marital_status || employee.spouse_name || employee.children_count > 0) && (
-              <Card className="glass-effect border-white/20">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Heart className="w-5 h-5" />
-                    Informasi Keluarga
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-gray-400 text-sm">Status Pernikahan</label>
-                      <p className="text-white">{employee.marital_status || 'N/A'}</p>
-                    </div>
-                    {employee.spouse_name && (
-                      <div>
-                        <label className="text-gray-400 text-sm">Nama Pasangan</label>
-                        <p className="text-white">{employee.spouse_name}</p>
-                      </div>
-                    )}
-                    <div>
-                      <label className="text-gray-400 text-sm">Jumlah Anak</label>
-                      <p className="text-white">{employee.children_count || 0}</p>
-                    </div>
+            {/* Informasi Keluarga */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Informasi Keluarga
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Status Pernikahan</label>
+                    <p className="text-sm">{employee.statusPernikahan || 'Tidak ada data'}</p>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                  {employee.namaPasangan && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Nama Pasangan</label>
+                      <p className="text-sm">{employee.namaPasangan}</p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Jumlah Anak</label>
+                    <p className="text-sm">{employee.jumlahAnak || 0} orang</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
           </div>
         )}
 
@@ -487,6 +555,6 @@ const EmployeeDetailPage = () => {
       </motion.div>
     </div>
   );
-};
+}
 
 export default EmployeeDetailPage;
