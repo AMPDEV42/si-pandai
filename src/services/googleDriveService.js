@@ -78,7 +78,27 @@ class GoogleDriveService {
       await new Promise((resolve, reject) => {
         // Add timeout to handle cases where GAPI doesn't load
         const timeout = setTimeout(() => {
-          reject(new Error('GAPI load timeout - script may be blocked or network issue'));
+          const debugInfo = {
+            hasGapi: !!window.gapi,
+            hasGapiClient: !!window.gapi?.client,
+            hasGapiAuth2: !!window.gapi?.auth2,
+            currentDomain: window.location.origin,
+            isHTTPS: window.location.protocol === 'https:'
+          };
+          apiLogger.error('GAPI initialization timeout', debugInfo);
+          reject(new Error(`⏱️ Google API initialization timeout after 10 seconds.
+
+🔍 Debug info:
+- Domain: ${window.location.origin}
+- HTTPS: ${window.location.protocol === 'https:'}
+- GAPI loaded: ${!!window.gapi}
+
+💡 This usually indicates:
+1. Network connectivity issues
+2. Domain authorization problems
+3. Browser blocking Google scripts
+
+Try refreshing the page or check network connectivity.`));
         }, 10000);
 
         window.gapi.load('client:auth2', async () => {
