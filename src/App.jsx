@@ -173,6 +173,14 @@ const AppContent = () => {
             ),
           },
           {
+            path: "/pegawai/:employeeId",
+            element: (
+              <ProtectedRoute allowedRoles={['admin-master', 'admin-unit']}>
+                <EmployeeDetailPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
             path: "/",
             element: <InitialRedirect />,
           },
