@@ -9,8 +9,12 @@ import { checkDomainAuthorization, formatDomainReport } from '../utils/domainChe
 
 export const debugGoogleDrive = async () => {
   console.log('🔍 Starting Google Drive Debug...');
-  
-  // 1. Check environment variables
+
+  // 1. Check domain authorization
+  const domainInfo = checkDomainAuthorization();
+  console.log(formatDomainReport(domainInfo));
+
+  // 2. Check environment variables
   console.log('📋 Environment Check:', {
     hasApiKey: !!config.googleDrive.apiKey,
     hasClientId: !!config.googleDrive.clientId,
