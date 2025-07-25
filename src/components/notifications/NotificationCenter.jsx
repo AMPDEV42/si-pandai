@@ -170,19 +170,12 @@ const NotificationCenter = () => {
   };
 
   const markAllAsRead = async () => {
-    const unreadIds = notifications
-      .filter(n => !n.is_read)
-      .map(n => n.id);
+    const unreadCount = notifications.filter(n => !n.is_read).length;
 
-    if (unreadIds.length === 0) return;
+    if (unreadCount === 0) return;
 
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .in('id', unreadIds);
-
-      if (error) throw error;
+      await markAllNotificationsAsRead(user.id);
 
       setNotifications(prev =>
         prev.map(n => ({ ...n, is_read: true }))
