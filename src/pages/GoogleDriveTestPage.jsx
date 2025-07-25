@@ -276,7 +276,36 @@ const GoogleDriveTestPage = () => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Tab Navigation */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-white/10 rounded-lg p-1 flex">
+            <button
+              onClick={() => setActiveTab('test')}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                activeTab === 'test'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              API Testing
+            </button>
+            <button
+              onClick={() => setActiveTab('setup')}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                activeTab === 'setup'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              Domain Setup
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'setup' ? (
+          <DomainInstructions />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Configuration Panel */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -418,7 +447,8 @@ const GoogleDriveTestPage = () => {
               </CardContent>
             </Card>
           </motion.div>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
