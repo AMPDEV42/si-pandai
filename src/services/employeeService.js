@@ -14,23 +14,47 @@ class EmployeeService {
     return withErrorHandling(async () => {
       let query = supabase
         .from('pegawai')
-        .select(`*`)
-        .order('full_name', { ascending: true });
+        .select(`*`);
 
-      // Apply filters
+      // Apply filters based on available columns
       if (filters.search) {
-        query = query.or(`full_name.ilike.%${filters.search}%,nip.ilike.%${filters.search}%,unit_kerja.ilike.%${filters.search}%`);
+        // Use a more flexible search that works with common column names
+        query = query.or(`nama.ilike.%${filters.search}%,nip.ilike.%${filters.search}%,unit.ilike.%${filters.search}%`);
       }
 
       if (filters.unitKerja) {
-        query = query.eq('unit_kerja', filters.unitKerja);
+        query = query.eq('unit', filters.unitKerja);
       }
 
       if (filters.limit) {
         query = query.limit(filters.limit);
       }
 
+      // Order by a common column that likely exists
+      query = query.order('nama', { ascending: true });
+
       const result = await query;
+
+      // Transform data to expected format if needed
+      if (result.data) {
+        result.data = result.data.map(pegawai => ({
+          ...pegawai,
+          // Map common field names to expected format
+          id: pegawai.id,
+          full_name: pegawai.nama || pegawai.full_name || pegawai.name || 'N/A',
+          nip: pegawai.nip || 'N/A',
+          email: pegawai.email || 'N/A',
+          phone: pegawai.phone || pegawai.telepon || pegawai.no_hp || null,
+          unit_kerja: pegawai.unit || pegawai.unit_kerja || pegawai.bagian || 'N/A',
+          position: pegawai.position || pegawai.jabatan || pegawai.posisi || 'N/A',
+          rank: pegawai.rank || pegawai.pangkat || pegawai.golongan || 'N/A',
+          employee_type: pegawai.employee_type || pegawai.jenis_pegawai || pegawai.status_kepegawaian || 'PNS',
+          status: pegawai.status || 'active',
+          created_at: pegawai.created_at,
+          updated_at: pegawai.updated_at
+        }));
+      }
+
       return result;
     }, 'getEmployees');
   }
