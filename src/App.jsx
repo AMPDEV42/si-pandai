@@ -9,6 +9,7 @@ import {
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Toaster } from './components/ui/toaster';
 import { AuthProvider, useAuth } from './contexts/SupabaseAuthContext';
+import { SidebarProvider } from './contexts/SidebarContext';
 import LoginPage from './pages/LoginPage';
 import AdminUnitDashboard from './pages/AdminUnitDashboard';
 import AdminMasterDashboard from './pages/AdminMasterDashboard';
@@ -199,12 +200,16 @@ const AppContent = () => {
   );
 };
 
-const App = () => (
-  <HelmetProvider>
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  </HelmetProvider>
-);
-
+const App = () => {
+  return (
+    <HelmetProvider>
+      <AuthProvider>
+        <SidebarProvider>
+          <AppContent />
+          <Toaster />
+        </SidebarProvider>
+      </AuthProvider>
+    </HelmetProvider>
+  );
+};
 export default App;
