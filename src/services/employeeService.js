@@ -67,16 +67,27 @@ class EmployeeService {
 
   /**
    * Get employee by ID with submission history
+   * Temporarily using profiles table until employees table is created
    */
   async getEmployeeById(id) {
     return withErrorHandling(async () => {
       const [employeeResult, submissionsResult] = await Promise.all([
         supabase
-          .from('employees')
-          .select('*')
+          .from('profiles')
+          .select(`
+            id,
+            full_name,
+            email,
+            unit_kerja,
+            nip,
+            phone,
+            role,
+            created_at,
+            updated_at
+          `)
           .eq('id', id)
           .single(),
-        
+
         supabase
           .from('submissions')
           .select(`
@@ -86,7 +97,7 @@ class EmployeeService {
               email
             )
           `)
-          .eq('employee_id', id)
+          .eq('submitted_by', id)
           .order('created_at', { ascending: false })
       ]);
 
@@ -94,9 +105,25 @@ class EmployeeService {
         throw employeeResult.error;
       }
 
+      // Transform profile data to employee format
+      const employee = {
+        id: employeeResult.data.id,
+        full_name: employeeResult.data.full_name || employeeResult.data.email,
+        nip: employeeResult.data.nip || 'N/A',
+        email: employeeResult.data.email,
+        phone: employeeResult.data.phone,
+        unit_kerja: employeeResult.data.unit_kerja || 'N/A',
+        position: 'N/A', // Will be available when employees table is created
+        rank: 'N/A', // Will be available when employees table is created
+        employee_type: 'PNS', // Default value
+        status: 'active', // Default value
+        created_at: employeeResult.data.created_at,
+        updated_at: employeeResult.data.updated_at
+      };
+
       return {
         data: {
-          employee: employeeResult.data,
+          employee,
           submissions: submissionsResult.data || []
         },
         error: null
