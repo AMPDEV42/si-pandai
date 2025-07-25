@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/customSupabaseClient';
+import { supabase } from '../lib/customSupabaseClient';
 import { sendNewSubmissionEmail } from './emailService';
 
 export const sendNotification = async ({ userId, title, message, type = 'info', link = null, email = null, submission = null }) => {
