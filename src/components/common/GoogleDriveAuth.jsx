@@ -131,6 +131,8 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
   };
 
   const handleRefresh = () => {
+    setError(null);
+    setIsDomainError(false);
     checkConfiguration();
     checkAuthentication();
   };
@@ -139,6 +141,7 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
     googleDriveService.reset();
     setIsAuthenticated(false);
     setError(null);
+    setIsDomainError(false);
     onAuthChange(false);
     checkAuthentication();
   };
