@@ -3,35 +3,44 @@ import { sendNewSubmissionEmail } from './emailService';
 import { apiLogger } from '../lib/logger';
 
 export const sendNotification = async ({ userId, title, message, type = 'info', link = null, email = null, submission = null }) => {
-  // Simpan notifikasi ke database
-  const { data, error } = await supabase
-    .from('notifications')
-    .insert([
-      {
-        user_id: userId,
-        title,
-        message,
-        link,
-        is_read: false,
-      }
-    ])
-    .select();
+  return withErrorHandling(async () => {
+    // Simpan notifikasi ke database
+    const notification = {
+      user_id: userId,
+      title,
+      message,
+      link,
+      is_read: false,
+    };
 
-  if (error) {
-    console.error('Error sending notification:', error);
-    return null;
-  }
+    const result = await supabase
+      .from('notifications')
+      .insert([notification])
+      .select()
+      .single();
 
-  // Jika email disediakan dan submission ada, kirim email notifikasi
-  if (email && submission && type === 'info' && title.includes('Pengajuan Baru')) {
-    try {
-      await sendNewSubmissionEmail(email, submission, submission.submitterName || 'Pengguna');
-    } catch (emailError) {
-      console.error('Error sending email notification:', emailError);
+    if (result.error) {
+      throw result.error;
     }
-  }
 
-  return data?.[0];
+    apiLogger.info('Notification sent', {
+      userId,
+      title,
+      type
+    });
+
+    // Jika email disediakan dan submission ada, kirim email notifikasi
+    if (email && submission && type === 'info' && title.includes('Pengajuan Baru')) {
+      try {
+        await sendNewSubmissionEmail(email, submission, submission.submitterName || 'Pengguna');
+        apiLogger.info('Email notification sent', { userId, email });
+      } catch (emailError) {
+        apiLogger.error('Error sending email notification', emailError);
+      }
+    }
+
+    return result.data;
+  }, 'sendNotification');
 };
 
 export const markNotificationAsRead = async (notificationId) => {
