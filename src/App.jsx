@@ -27,6 +27,8 @@ import UnauthorizedPage from './pages/UnauthorizedPage';
 import SubmissionHistory from './pages/SubmissionHistory';
 // import SubmissionCategories from './pages/SubmissionCategories';
 import NewSubmissionPage from './pages/NewSubmissionPage';
+import ImprovedSubmissionPage from './pages/ImprovedSubmissionPage';
+import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import DataPegawai from './pages/pegawai/index.jsx';
 
 // Component to handle initial redirect
