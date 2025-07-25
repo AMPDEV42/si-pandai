@@ -22,12 +22,18 @@ export const getPegawai = async () => {
 
   if (error) throw error;
   
-  // Convert snake_case to camelCase for frontend
+  // Convert snake_case to camelCase for frontend and calculate masa kerja
   return data.map(item => {
     const newItem = {};
     Object.keys(item).forEach(key => {
       newItem[toCamel(key)] = item[key];
     });
+
+    // Calculate masa kerja if not present or if TMT is available
+    if (item.tmt && (!item.masa_kerja || !newItem.masaKerja)) {
+      newItem.masaKerja = hitungMasaKerja(item.tmt);
+    }
+
     return newItem;
   }) || [];
 };
