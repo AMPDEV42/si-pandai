@@ -42,18 +42,28 @@ const AdminMasterDashboard = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Initialize sample data if none exists
-    const allSubmissions = initializeSampleData();
-    setSubmissions(allSubmissions);
+    const loadData = async () => {
+      setIsLoading(true);
 
-    const newStats = {
-      total: allSubmissions.length,
-      pending: allSubmissions.filter(sub => sub.status === 'pending').length,
-      approved: allSubmissions.filter(sub => sub.status === 'approved').length,
-      rejected: allSubmissions.filter(sub => sub.status === 'rejected').length,
-      revision: allSubmissions.filter(sub => sub.status === 'revision').length
+      // Simulate loading delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Initialize sample data if none exists
+      const allSubmissions = initializeSampleData();
+      setSubmissions(allSubmissions);
+
+      const newStats = {
+        total: allSubmissions.length,
+        pending: allSubmissions.filter(sub => sub.status === 'pending').length,
+        approved: allSubmissions.filter(sub => sub.status === 'approved').length,
+        rejected: allSubmissions.filter(sub => sub.status === 'rejected').length,
+        revision: allSubmissions.filter(sub => sub.status === 'revision').length
+      };
+      setStats(newStats);
+      setIsLoading(false);
     };
-    setStats(newStats);
+
+    loadData();
   }, [user]);
 
   const filteredSubmissions = useMemo(() => {
