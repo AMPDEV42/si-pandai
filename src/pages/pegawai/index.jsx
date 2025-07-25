@@ -12,12 +12,13 @@ import { Badge } from '../../components/ui/badge';
 import { format, parseISO, subDays } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { motion } from 'framer-motion';
-import { 
-  getPegawai, 
-  createPegawai, 
-  updatePegawai, 
-  deletePegawai 
+import {
+  getPegawai,
+  createPegawai,
+  updatePegawai,
+  deletePegawai
 } from '../../services/pegawaiService';
+import EmployeeStats from '../../components/pegawai/EmployeeStats';
 
 export default function DataPegawai() {
   const [pegawai, setPegawai] = useState([]);
