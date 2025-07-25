@@ -244,14 +244,28 @@ const NotificationCenter = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               </div>
             ) : error ? (
-              <div className="p-4 text-center text-red-500">
-                {error}
-                <button 
-                  onClick={loadNotifications}
-                  className="mt-2 text-blue-600 hover:underline"
-                >
-                  Coba lagi
-                </button>
+              <div className="p-2">
+                {error.message?.includes('Failed to fetch') ||
+                 error.message?.includes('Network request failed') ||
+                 error.message?.includes('fetch failed') ? (
+                  <div className="text-xs">
+                    <NetworkErrorHandler
+                      error={error}
+                      onRetry={loadNotifications}
+                      className="scale-75 origin-top"
+                    />
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-red-500">
+                    {error.message || error}
+                    <button
+                      onClick={loadNotifications}
+                      className="mt-2 text-blue-600 hover:underline block"
+                    >
+                      Coba lagi
+                    </button>
+                  </div>
+                )}
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
