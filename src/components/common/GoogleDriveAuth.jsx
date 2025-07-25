@@ -20,6 +20,7 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState(null);
+  const [isDomainError, setIsDomainError] = useState(false);
   const [configDetails, setConfigDetails] = useState({ apiKey: false, clientId: false });
 
   useEffect(() => {
