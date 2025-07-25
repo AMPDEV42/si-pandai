@@ -104,6 +104,11 @@ const EmployeeSelection = ({ selectedEmployee, onEmployeeSelect, className = '' 
         <p className="text-gray-300 text-sm">
           Pilih pegawai yang akan diajukan usulannya
         </p>
+        <div className="mt-2 p-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+          <p className="text-blue-300 text-xs">
+            💡 Saat ini menggunakan data dari tabel profil. Untuk fitur lengkap, jalankan script SQL di database/create_employees_table.sql
+          </p>
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
