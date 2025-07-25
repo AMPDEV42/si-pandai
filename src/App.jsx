@@ -31,6 +31,7 @@ import ImprovedSubmissionPage from './pages/ImprovedSubmissionPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import DataPegawai from './pages/pegawai/index.jsx';
 import GoogleDriveTestPage from './pages/GoogleDriveTestPage';
+import SupabaseMonitor from './components/debug/SupabaseMonitor';
 
 // Component to handle initial redirect
 const InitialRedirect = () => {
