@@ -84,11 +84,30 @@ class GoogleDriveService {
         window.gapi.load('client:auth2', async () => {
           clearTimeout(timeout);
           try {
+            // Check if gapi is properly loaded
+            if (!window.gapi) {
+              throw new Error('GAPI not loaded - window.gapi is undefined');
+            }
+
+            if (!window.gapi.client) {
+              throw new Error('GAPI client not available - window.gapi.client is undefined');
+            }
+
+            apiLogger.info('Starting GAPI client initialization', {
+              hasGapi: !!window.gapi,
+              hasClient: !!window.gapi.client,
+              hasAuth2: !!window.gapi.auth2,
+              apiKeyLength: config.googleDrive.apiKey?.length,
+              clientIdLength: config.googleDrive.clientId?.length
+            });
+
             // First initialize the client without auth parameters
             await window.gapi.client.init({
               apiKey: config.googleDrive.apiKey,
               discoveryDocs: [config.googleDrive.discoveryDoc]
             });
+
+            apiLogger.info('GAPI client initialized, now initializing auth2');
 
             // Then initialize auth2 separately
             await window.gapi.auth2.init({
