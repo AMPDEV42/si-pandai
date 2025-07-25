@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { useToast } from '../ui/use-toast';
 import { formatFileSize } from '../../lib/utils';
 import { apiLogger } from '../../lib/logger';
+import { googleDriveService } from '../../services/googleDriveService';
 
 const RequirementUpload = ({ 
   requirement, 
