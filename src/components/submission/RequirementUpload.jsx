@@ -125,6 +125,15 @@ const RequirementUpload = ({
 
   const uploadToGoogleDrive = async (file) => {
     try {
+      // Validate inputs
+      if (!submissionType || !submissionType.category) {
+        throw new Error('Tipe pengajuan tidak valid');
+      }
+
+      if (!employeeName || !employeeName.trim()) {
+        throw new Error('Nama pegawai tidak boleh kosong');
+      }
+
       // Create folder structure
       const { employeeFolderId } = await googleDriveService.createSubmissionFolderStructure(
         submissionType,
@@ -133,32 +142,50 @@ const RequirementUpload = ({
 
       // Generate descriptive filename
       const fileExtension = file.name.split('.').pop();
-      const cleanRequirementName = requirement.title.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+      const cleanRequirementName = requirement.title
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .trim()
+        .replace(/\s+/g, ' ');
       const fileName = `${cleanRequirementName}.${fileExtension}`;
 
-      // Upload file
+      // Upload file with retry
       const uploadResult = await googleDriveService.uploadFile(
         file,
         employeeFolderId,
         fileName
       );
 
-      apiLogger.info('File uploaded to Google Drive', {
+      apiLogger.info('File uploaded to Google Drive successfully', {
         requirementId: requirement.id,
         fileName: uploadResult.name,
         fileId: uploadResult.id,
-        employeeName
+        employeeName,
+        fileSize: file.size
       });
 
       return {
         ...uploadResult,
-        source: 'google-drive',
         folderId: employeeFolderId
       };
 
     } catch (error) {
-      apiLogger.error('Google Drive upload failed', error);
-      throw new Error(`Gagal upload ke Google Drive: ${error.message}`);
+      apiLogger.error('Google Drive upload failed', {
+        requirementId: requirement.id,
+        fileName: file.name,
+        employeeName,
+        error: error.message
+      });
+
+      // Provide more specific error messages
+      if (error.message.includes('quota')) {
+        throw new Error('Quota Google Drive tercapai. Coba lagi dalam beberapa saat.');
+      } else if (error.message.includes('permission')) {
+        throw new Error('Tidak ada izin untuk mengakses Google Drive. Silakan login ulang.');
+      } else if (error.message.includes('network')) {
+        throw new Error('Koneksi internet bermasalah. Periksa koneksi dan coba lagi.');
+      } else {
+        throw new Error(`Gagal upload ke Google Drive: ${error.message}`);
+      }
     }
   };
 
