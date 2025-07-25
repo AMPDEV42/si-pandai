@@ -74,14 +74,25 @@ class GoogleDriveService {
       // Load Google API script
       await this.loadGoogleAPI();
 
-      // Initialize GAPI client
+      // Initialize GAPI client and auth2 separately
       await new Promise((resolve, reject) => {
+        // Add timeout to handle cases where GAPI doesn't load
+        const timeout = setTimeout(() => {
+          reject(new Error('GAPI load timeout - script may be blocked or network issue'));
+        }, 10000);
+
         window.gapi.load('client:auth2', async () => {
+          clearTimeout(timeout);
           try {
+            // First initialize the client without auth parameters
             await window.gapi.client.init({
               apiKey: config.googleDrive.apiKey,
-              clientId: config.googleDrive.clientId,
-              discoveryDocs: [config.googleDrive.discoveryDoc],
+              discoveryDocs: [config.googleDrive.discoveryDoc]
+            });
+
+            // Then initialize auth2 separately
+            await window.gapi.auth2.init({
+              client_id: config.googleDrive.clientId,
               scope: config.googleDrive.scope
             });
 
@@ -98,12 +109,22 @@ class GoogleDriveService {
               code: error?.code || 'No code',
               details: error?.details || 'No details',
               stack: error?.stack || 'No stack trace',
-              stringified: error?.toString() || 'Cannot stringify error'
+              stringified: error?.toString() || 'Cannot stringify error',
+              currentDomain: window.location.origin
             };
             apiLogger.error('Failed to initialize GAPI client', { error: errorDetails });
-            reject(new Error(`GAPI client initialization failed: ${errorDetails.message}`));
+
+            // Provide more specific error messages
+            if (errorDetails.message.includes('origin') || errorDetails.message.includes('domain')) {
+              reject(new Error(`Domain authorization error: ${window.location.origin} may not be authorized in Google Cloud Console. Please add this domain to OAuth 2.0 Client ID authorized JavaScript origins.`));
+            } else if (errorDetails.code === 'popup_blocked_by_browser') {
+              reject(new Error('Popup blocked by browser. Please allow popups for this domain.'));
+            } else {
+              reject(new Error(`GAPI client initialization failed: ${errorDetails.message || errorDetails.code}`));
+            }
           }
         }, (error) => {
+          clearTimeout(timeout);
           const errorDetails = {
             name: error?.name || 'Unknown',
             message: error?.message || 'Failed to load GAPI modules',
