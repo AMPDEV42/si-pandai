@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, User, Building2, Calendar } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -82,7 +82,9 @@ export default function DataPegawai() {
     setFormData({
       ...pegawai,
       id: pegawai.id,
-      tanggalLahir: pegawai.tanggal_lahir ? format(parseISO(pegawai.tanggal_lahir), 'yyyy-MM-dd') : '',
+      pangkatGolongan: pegawai.pangkatGolongan || pegawai.pangkat_golongan || '',
+      unitKerja: pegawai.unitKerja || pegawai.unit_kerja || '',
+      tanggalLahir: pegawai.tanggalLahir || (pegawai.tanggal_lahir ? format(parseISO(pegawai.tanggal_lahir), 'yyyy-MM-dd') : ''),
       tmt: pegawai.tmt ? format(parseISO(pegawai.tmt), 'yyyy-MM-dd') : ''
     });
     setIsEditMode(true);
@@ -284,26 +286,37 @@ export default function DataPegawai() {
                     <TableRow key={p.id} className="hover:bg-white/5 transition-colors">
                       <TableCell className="text-white/90">{p.nama}</TableCell>
                       <TableCell className="text-white/70">{p.nip}</TableCell>
-                      <TableCell className="text-white/70">{p.pangkat_golongan}</TableCell>
-                      <TableCell className="text-white/70">{p.jabatan}</TableCell>
-                      <TableCell className="text-white/70">{p.unit_kerja}</TableCell>
+                      <TableCell className="text-white/70">{p.pangkatGolongan || p.pangkat_golongan || 'N/A'}</TableCell>
+                      <TableCell className="text-white/70">{p.jabatan || 'N/A'}</TableCell>
+                      <TableCell className="text-white/70">{p.unitKerja || p.unit_kerja || 'N/A'}</TableCell>
                       <TableCell className="text-white/70">
-                        {p.masa_kerja?.tahun} tahun {p.masa_kerja?.bulan} bulan
+                        {p.masaKerja?.tahun || p.masa_kerja?.tahun || 0} tahun {p.masaKerja?.bulan || p.masa_kerja?.bulan || 0} bulan
                       </TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-blue-400/70 hover:bg-blue-500/10 hover:text-blue-400"
+                          onClick={() => navigate(`/pegawai/${p.id}`)}
+                          title="Lihat Detail"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
                           size="icon"
                           className="text-white/70 hover:bg-white/10 hover:text-white"
                           onClick={() => handleEdit(p)}
+                          title="Edit Data"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           className="text-red-500/80 hover:bg-red-500/10 hover:text-red-400"
-                          onClick={() => handleDelete(p._id)}
+                          onClick={() => handleDelete(p.id || p._id)}
+                          title="Hapus Data"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
