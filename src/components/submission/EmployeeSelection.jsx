@@ -177,17 +177,29 @@ const EmployeeSelection = ({ selectedEmployee, onEmployeeSelect, className = '' 
         {!selectedEmployee && (
           <div className="max-h-80 overflow-y-auto scrollbar-hide">
             {error ? (
-              <div className="text-center py-8 text-red-400">
-                <p>{error}</p>
-                <Button 
-                  onClick={() => loadEmployees(searchTerm)}
-                  size="sm"
-                  variant="outline"
-                  className="mt-2"
-                >
-                  Coba Lagi
-                </Button>
-              </div>
+              error.message?.includes('Failed to fetch') ||
+              error.message?.includes('Network request failed') ||
+              error.message?.includes('fetch failed') ? (
+                <div className="p-2">
+                  <NetworkErrorHandler
+                    error={error}
+                    onRetry={() => loadEmployees(searchTerm)}
+                    className="scale-90 origin-top"
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-8 text-red-400">
+                  <p>{error.message || error}</p>
+                  <Button
+                    onClick={() => loadEmployees(searchTerm)}
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                  >
+                    Coba Lagi
+                  </Button>
+                </div>
+              )
             ) : isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
