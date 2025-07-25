@@ -65,7 +65,7 @@ const SubmissionHistory = ({ isAdminView = false }) => {
       } else {
         // Mode user - tampilkan hanya pengajuan user tersebut
         if (user?.role === 'user') {
-          query = query.eq('submitted_by', user.id);
+          query = query.eq('user_id', user.id);
         } else if (user?.role === 'admin-unit') {
           query = query.eq('unit_kerja', user.unit_kerja);
         }
@@ -77,7 +77,7 @@ const SubmissionHistory = ({ isAdminView = false }) => {
 
       // Manually fetch user profiles for submissions
       if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(s => s.submitted_by).filter(Boolean))];
+        const userIds = [...new Set(data.map(s => s.user_id).filter(Boolean))];
 
         if (userIds.length > 0) {
           const { data: profiles } = await supabase
@@ -90,11 +90,11 @@ const SubmissionHistory = ({ isAdminView = false }) => {
 
             const submissionsWithUsers = data.map(submission => ({
               ...submission,
-              user: profileMap[submission.submitted_by] ? {
-                id: profileMap[submission.submitted_by].id,
-                name: profileMap[submission.submitted_by].full_name,
-                email: profileMap[submission.submitted_by].email,
-                unit_kerja: profileMap[submission.submitted_by].unit_kerja
+              user: profileMap[submission.user_id] ? {
+                id: profileMap[submission.user_id].id,
+                name: profileMap[submission.user_id].full_name,
+                email: profileMap[submission.user_id].email,
+                unit_kerja: profileMap[submission.user_id].unit_kerja
               } : null
             }));
 
