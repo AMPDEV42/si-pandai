@@ -284,6 +284,37 @@ export default function DataPegawai() {
         </Dialog>
       </motion.div>
 
+      {/* Search and Filter Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="bg-white/5 backdrop-blur-lg rounded-xl p-4 border border-white/10"
+      >
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              type="text"
+              placeholder="Cari pegawai berdasarkan nama, NIP, unit kerja, atau jabatan..."
+              className="pl-10 bg-white/5 border-white/20 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          {searchTerm && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchTerm('')}
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+      </motion.div>
+
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
