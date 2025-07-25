@@ -307,15 +307,15 @@ const AdminMasterDashboard = () => {
                           <div className="flex items-center gap-4 text-sm text-gray-400">
                             <div className="flex items-center gap-1">
                               <Users className="w-4 h-4" />
-                              {submission.submitterName}
+                              {submission.submitter?.full_name || submission.submitter?.email || 'Unknown User'}
                             </div>
                             <div className="flex items-center gap-1">
                               <Building2 className="w-4 h-4" />
-                              {submission.personalInfo.unit || 'Unit Kerja'}
+                              {submission.unit_kerja || submission.submitter?.unit_kerja || 'Unit Kerja'}
                             </div>
                             <div className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
-                              {new Date(submission.createdAt).toLocaleDateString('id-ID')}
+                              {new Date(submission.created_at).toLocaleDateString('id-ID')}
                             </div>
                           </div>
                         </div>
