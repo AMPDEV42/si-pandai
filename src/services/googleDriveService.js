@@ -71,13 +71,29 @@ class GoogleDriveService {
             this.gapi = window.gapi;
             this.isInitialized = true;
             this.initializationPromise = null;
-            
+
             apiLogger.info('Google Drive API initialized successfully');
             resolve();
           } catch (error) {
-            apiLogger.error('Failed to initialize GAPI client', error);
-            reject(error);
+            const errorDetails = {
+              name: error?.name || 'Unknown',
+              message: error?.message || 'No message',
+              code: error?.code || 'No code',
+              details: error?.details || 'No details',
+              stack: error?.stack || 'No stack trace',
+              stringified: error?.toString() || 'Cannot stringify error'
+            };
+            apiLogger.error('Failed to initialize GAPI client', { error: errorDetails });
+            reject(new Error(`GAPI client initialization failed: ${errorDetails.message}`));
           }
+        }, (error) => {
+          const errorDetails = {
+            name: error?.name || 'Unknown',
+            message: error?.message || 'Failed to load GAPI modules',
+            code: error?.code || 'GAPI_LOAD_ERROR'
+          };
+          apiLogger.error('Failed to load GAPI modules', { error: errorDetails });
+          reject(new Error(`Failed to load GAPI modules: ${errorDetails.message}`));
         });
       });
 
