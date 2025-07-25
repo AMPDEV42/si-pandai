@@ -16,52 +16,66 @@ class SubmissionService {
     return withErrorHandling(async () => {
       let query = supabase
         .from('submissions')
-        .select(`
-          *,
-          submitter:profiles!submitted_by(
-            id,
-            full_name,
-            email,
-            unit_kerja
-          ),
-          reviewer:profiles!reviewed_by(
-            id,
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       // Apply filters
       if (filters.status) {
         query = query.eq('status', filters.status);
       }
-      
+
       if (filters.submittedBy) {
         query = query.eq('submitted_by', filters.submittedBy);
       }
-      
+
       if (filters.unitKerja) {
         query = query.eq('unit_kerja', filters.unitKerja);
       }
-      
+
       if (filters.dateFrom) {
         query = query.gte('created_at', filters.dateFrom);
       }
-      
+
       if (filters.dateTo) {
         query = query.lte('created_at', filters.dateTo);
       }
-      
+
       if (filters.search) {
         query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
       }
-      
+
       if (filters.limit) {
         query = query.limit(filters.limit);
       }
 
-      return await query;
+      const result = await query;
+
+      // If successful, manually fetch related profile data
+      if (result.data && result.data.length > 0) {
+        const userIds = [...new Set([
+          ...result.data.map(s => s.submitted_by).filter(Boolean),
+          ...result.data.map(s => s.reviewed_by).filter(Boolean)
+        ])];
+
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, unit_kerja')
+            .in('id', userIds);
+
+          if (profiles) {
+            const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+
+            result.data = result.data.map(submission => ({
+              ...submission,
+              submitter: profileMap[submission.submitted_by] || null,
+              reviewer: profileMap[submission.reviewed_by] || null
+            }));
+          }
+        }
+      }
+
+      return result;
     }, 'getSubmissions');
   }
 
