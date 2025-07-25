@@ -84,33 +84,38 @@ class SubmissionService {
    */
   async getSubmissionById(id) {
     return withErrorHandling(async () => {
-      return await supabase
+      const result = await supabase
         .from('submissions')
-        .select(`
-          *,
-          submitter:profiles!submitted_by(
-            id,
-            full_name,
-            email,
-            unit_kerja,
-            role
-          ),
-          reviewer:profiles!reviewed_by(
-            id,
-            full_name,
-            email
-          ),
-          documents:submission_documents(
-            id,
-            file_name,
-            file_size,
-            file_type,
-            file_url,
-            uploaded_at
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
+
+      if (result.data) {
+        // Manually fetch related data
+        const userIds = [result.data.submitted_by, result.data.reviewed_by].filter(Boolean);
+
+        const [profilesResult, documentsResult] = await Promise.all([
+          userIds.length > 0 ? supabase
+            .from('profiles')
+            .select('id, full_name, email, unit_kerja, role')
+            .in('id', userIds) : { data: [] },
+          supabase
+            .from('submission_documents')
+            .select('id, file_name, file_size, file_type, file_url, uploaded_at')
+            .eq('submission_id', id)
+        ]);
+
+        const profileMap = Object.fromEntries((profilesResult.data || []).map(p => [p.id, p]));
+
+        result.data = {
+          ...result.data,
+          submitter: profileMap[result.data.submitted_by] || null,
+          reviewer: profileMap[result.data.reviewed_by] || null,
+          documents: documentsResult.data || []
+        };
+      }
+
+      return result;
     }, `getSubmissionById: ${id}`);
   }
 
