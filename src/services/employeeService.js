@@ -9,23 +9,12 @@ import { apiLogger } from '../lib/logger';
 class EmployeeService {
   /**
    * Get all employees with optional filters
-   * Temporarily using profiles table until employees table is created
    */
   async getEmployees(filters = {}) {
     return withErrorHandling(async () => {
       let query = supabase
-        .from('profiles')
-        .select(`
-          id,
-          full_name,
-          email,
-          unit_kerja,
-          nip,
-          phone,
-          role,
-          created_at,
-          updated_at
-        `)
+        .from('pegawai')
+        .select(`*`)
         .order('full_name', { ascending: true });
 
       // Apply filters
@@ -42,49 +31,19 @@ class EmployeeService {
       }
 
       const result = await query;
-
-      // Transform profiles data to employee format
-      if (result.data) {
-        result.data = result.data.map(profile => ({
-          id: profile.id,
-          full_name: profile.full_name || profile.email,
-          nip: profile.nip || 'N/A',
-          email: profile.email,
-          phone: profile.phone,
-          unit_kerja: profile.unit_kerja || 'N/A',
-          position: 'N/A', // Will be available when employees table is created
-          rank: 'N/A', // Will be available when employees table is created
-          employee_type: 'PNS', // Default value
-          status: 'active', // Default value
-          created_at: profile.created_at,
-          updated_at: profile.updated_at
-        }));
-      }
-
       return result;
     }, 'getEmployees');
   }
 
   /**
    * Get employee by ID with submission history
-   * Temporarily using profiles table until employees table is created
    */
   async getEmployeeById(id) {
     return withErrorHandling(async () => {
       const [employeeResult, submissionsResult] = await Promise.all([
         supabase
-          .from('profiles')
-          .select(`
-            id,
-            full_name,
-            email,
-            unit_kerja,
-            nip,
-            phone,
-            role,
-            created_at,
-            updated_at
-          `)
+          .from('pegawai')
+          .select(`*`)
           .eq('id', id)
           .single(),
 
@@ -105,25 +64,9 @@ class EmployeeService {
         throw employeeResult.error;
       }
 
-      // Transform profile data to employee format
-      const employee = {
-        id: employeeResult.data.id,
-        full_name: employeeResult.data.full_name || employeeResult.data.email,
-        nip: employeeResult.data.nip || 'N/A',
-        email: employeeResult.data.email,
-        phone: employeeResult.data.phone,
-        unit_kerja: employeeResult.data.unit_kerja || 'N/A',
-        position: 'N/A', // Will be available when employees table is created
-        rank: 'N/A', // Will be available when employees table is created
-        employee_type: 'PNS', // Default value
-        status: 'active', // Default value
-        created_at: employeeResult.data.created_at,
-        updated_at: employeeResult.data.updated_at
-      };
-
       return {
         data: {
-          employee,
+          employee: employeeResult.data,
           submissions: submissionsResult.data || []
         },
         error: null
@@ -143,7 +86,7 @@ class EmployeeService {
       };
 
       const result = await supabase
-        .from('employees')
+        .from('pegawai')
         .insert([employee])
         .select()
         .single();
@@ -173,7 +116,7 @@ class EmployeeService {
       };
 
       const result = await supabase
-        .from('employees')
+        .from('pegawai')
         .update(updates)
         .eq('id', id)
         .select()
@@ -198,7 +141,7 @@ class EmployeeService {
   async deleteEmployee(id) {
     return withErrorHandling(async () => {
       const result = await supabase
-        .from('employees')
+        .from('pegawai')
         .delete()
         .eq('id', id)
         .select()
@@ -215,52 +158,38 @@ class EmployeeService {
 
   /**
    * Search employees
-   * Temporarily using profiles table until employees table is created
    */
   async searchEmployees(searchTerm, limit = 10) {
     return withErrorHandling(async () => {
       let query = supabase
-        .from('profiles')
-        .select('id, full_name, nip, unit_kerja, email')
+        .from('pegawai')
+        .select('id, full_name, nip, unit_kerja, email, position')
         .or(`full_name.ilike.%${searchTerm}%,nip.ilike.%${searchTerm}%`)
         .limit(limit)
         .order('full_name', { ascending: true });
 
       const result = await query;
-
-      // Transform profiles data to employee format
-      if (result.data) {
-        result.data = result.data.map(profile => ({
-          id: profile.id,
-          full_name: profile.full_name || profile.email,
-          nip: profile.nip || 'N/A',
-          unit_kerja: profile.unit_kerja || 'N/A',
-          position: 'N/A' // Will be available when employees table is created
-        }));
-      }
-
       return result;
     }, `searchEmployees: ${searchTerm}`);
   }
 
   /**
    * Get employee statistics
-   * Temporarily using profiles table until employees table is created
    */
   async getEmployeeStats() {
     return withErrorHandling(async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('unit_kerja, role');
+        .from('pegawai')
+        .select('unit_kerja, status');
 
       if (error) throw error;
 
       const stats = {
         total: data.length,
-        active: data.length, // All profiles are considered active
-        inactive: 0,
-        byUnit: data.reduce((acc, profile) => {
-          const unit = profile.unit_kerja || 'N/A';
+        active: data.filter(emp => emp.status === 'active').length,
+        inactive: data.filter(emp => emp.status === 'inactive').length,
+        byUnit: data.reduce((acc, employee) => {
+          const unit = employee.unit_kerja || 'N/A';
           acc[unit] = (acc[unit] || 0) + 1;
           return acc;
         }, {})
