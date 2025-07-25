@@ -100,12 +100,16 @@ export default function DataPegawai() {
 
   const handleEdit = (pegawai) => {
     setFormData({
-      ...pegawai,
       id: pegawai.id,
-      pangkatGolongan: pegawai.pangkatGolongan || pegawai.pangkat_golongan || '',
-      unitKerja: pegawai.unitKerja || pegawai.unit_kerja || '',
+      nama: pegawai.nama || pegawai.full_name || '',
+      nip: pegawai.nip || '',
+      pangkatGolongan: pegawai.pangkatGolongan || pegawai.pangkat_golongan || pegawai.pangkat || '',
+      tempatLahir: pegawai.tempatLahir || pegawai.tempat_lahir || pegawai.birth_place || '',
       tanggalLahir: pegawai.tanggalLahir || (pegawai.tanggal_lahir ? format(parseISO(pegawai.tanggal_lahir), 'yyyy-MM-dd') : ''),
-      tmt: pegawai.tmt ? format(parseISO(pegawai.tmt), 'yyyy-MM-dd') : ''
+      tmt: pegawai.tmt ? format(parseISO(pegawai.tmt), 'yyyy-MM-dd') : '',
+      jabatan: pegawai.jabatan || pegawai.position || '',
+      unitKerja: pegawai.unitKerja || pegawai.unit_kerja || pegawai.unit || '',
+      riwayatDiklat: pegawai.riwayatDiklat || []
     });
     setIsEditMode(true);
     setIsDialogOpen(true);
