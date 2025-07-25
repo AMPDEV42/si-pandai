@@ -1,5 +1,6 @@
-import { supabase } from '../lib/customSupabaseClient';
+import { supabase, withErrorHandling } from '../lib/customSupabaseClient';
 import { sendNewSubmissionEmail } from './emailService';
+import { apiLogger } from '../lib/logger';
 
 export const sendNotification = async ({ userId, title, message, type = 'info', link = null, email = null, submission = null }) => {
   // Simpan notifikasi ke database
