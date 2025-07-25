@@ -73,13 +73,7 @@ class EmployeeService {
 
         supabase
           .from('submissions')
-          .select(`
-            *,
-            submitter:profiles!submitted_by(
-              full_name,
-              email
-            )
-          `)
+          .select('*')
           .eq('submitted_by', id)
           .order('created_at', { ascending: false })
       ]);
@@ -88,10 +82,37 @@ class EmployeeService {
         throw employeeResult.error;
       }
 
+      let submissionsWithProfiles = [];
+
+      // Manually fetch submitter profiles if submissions exist
+      if (submissionsResult.data && submissionsResult.data.length > 0) {
+        const userIds = [...new Set(submissionsResult.data.map(s => s.submitted_by).filter(Boolean))];
+
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, unit_kerja')
+            .in('id', userIds);
+
+          if (profiles) {
+            const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+
+            submissionsWithProfiles = submissionsResult.data.map(submission => ({
+              ...submission,
+              submitter: profileMap[submission.submitted_by] || null
+            }));
+          } else {
+            submissionsWithProfiles = submissionsResult.data;
+          }
+        } else {
+          submissionsWithProfiles = submissionsResult.data;
+        }
+      }
+
       return {
         data: {
           employee: employeeResult.data,
-          submissions: submissionsResult.data || []
+          submissions: submissionsWithProfiles
         },
         error: null
       };
