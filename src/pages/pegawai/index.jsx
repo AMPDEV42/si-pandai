@@ -82,8 +82,8 @@ export default function DataPegawai() {
     setFormData({
       ...pegawai,
       id: pegawai.id,
-      tanggalLahir: format(parseISO(pegawai.tanggal_lahir), 'yyyy-MM-dd'),
-      tmt: format(parseISO(pegawai.tmt), 'yyyy-MM-dd')
+      tanggalLahir: pegawai.tanggal_lahir ? format(parseISO(pegawai.tanggal_lahir), 'yyyy-MM-dd') : '',
+      tmt: pegawai.tmt ? format(parseISO(pegawai.tmt), 'yyyy-MM-dd') : ''
     });
     setIsEditMode(true);
     setIsDialogOpen(true);
