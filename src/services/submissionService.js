@@ -363,14 +363,7 @@ class SubmissionService {
     return withErrorHandling(async () => {
       let query = supabase
         .from('submissions')
-        .select(`
-          *,
-          submitter:profiles!submitted_by(
-            full_name,
-            email,
-            unit_kerja
-          )
-        `)
+        .select('*')
         .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
         .order('created_at', { ascending: false });
 
@@ -382,7 +375,30 @@ class SubmissionService {
         query = query.limit(filters.limit);
       }
 
-      return await query;
+      const result = await query;
+
+      // Manually fetch submitter profiles
+      if (result.data && result.data.length > 0) {
+        const userIds = [...new Set(result.data.map(s => s.submitted_by).filter(Boolean))];
+
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, unit_kerja')
+            .in('id', userIds);
+
+          if (profiles) {
+            const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+
+            result.data = result.data.map(submission => ({
+              ...submission,
+              submitter: profileMap[submission.submitted_by] || null
+            }));
+          }
+        }
+      }
+
+      return result;
     }, `searchSubmissions: ${searchTerm}`);
   }
 }
