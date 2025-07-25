@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import { useAuth } from '../contexts/SupabaseAuthContext';
 import { 
   FileText, 
   Clock, 
@@ -111,7 +111,7 @@ const AdminMasterDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-3xl font-bold text-white">Dashboard Admin Master</h1>
-          <p className="text-gray-300 mt-1">Selamat datang kembali, {user.name}!</p>
+          <p className="text-gray-300 mt-1">Selamat datang kembali, {user?.name || user?.email}!</p>
         </motion.div>
 
         <motion.div
