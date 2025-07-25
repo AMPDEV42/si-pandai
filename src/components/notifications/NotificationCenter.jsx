@@ -158,12 +158,7 @@ const NotificationCenter = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id);
-
-      if (error) throw error;
+      await markNotificationAsRead(id);
 
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
