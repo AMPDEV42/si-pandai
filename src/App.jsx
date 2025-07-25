@@ -229,6 +229,7 @@ const AppContent = () => {
         <div className="min-h-screen">
           <Toaster />
           <RouterProvider router={router} />
+          <SupabaseMonitor />
         </div>
       </HelmetProvider>
     </ErrorBoundary>
