@@ -263,7 +263,24 @@ const AdminUnitDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {submissions.length === 0 ? (
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="p-4 rounded-lg bg-white/5 border border-white/10 animate-pulse">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                          <div className="h-3 bg-white/10 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                    <p className="text-red-400">Terjadi Kesalahan</p>
+                    <p className="text-sm text-gray-500 mt-1">{error}</p>
+                  </div>
+                ) : submissions.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-400">Belum ada usulan</p>
@@ -290,7 +307,7 @@ const AdminUnitDashboard = () => {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-400">
                           <Calendar className="w-3 h-3" />
-                          {new Date(submission.createdAt).toLocaleDateString('id-ID')}
+                          {new Date(submission.created_at).toLocaleDateString('id-ID')}
                         </div>
                       </motion.div>
                     ))}
