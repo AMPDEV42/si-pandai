@@ -10,6 +10,57 @@ class EmployeeService {
   /**
    * Get all employees with optional filters
    */
+  /**
+   * Get employee by ID with their submissions
+   */
+  async getEmployeeById(id) {
+    return withErrorHandling(async () => {
+      // Get employee data
+      const { data: employee, error: employeeError } = await supabase
+        .from('pegawai')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (employeeError) throw employeeError;
+      if (!employee) throw new Error('Pegawai tidak ditemukan');
+
+      // Get employee's submissions
+      const { data: submissions, error: submissionsError } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('employee_id', id)
+        .order('created_at', { ascending: false });
+
+      if (submissionsError) throw submissionsError;
+
+      // Transform data to match frontend expectations
+      const formattedEmployee = {
+        ...employee,
+        full_name: employee.nama || employee.full_name || employee.name || 'N/A',
+        nip: employee.nip || 'N/A',
+        email: employee.email || 'N/A',
+        noHp: employee.phone || employee.telepon || employee.no_hp || null,
+        unitKerja: employee.unit || employee.unit_kerja || employee.bagian || 'N/A',
+        jabatan: employee.position || employee.jabatan || employee.posisi || 'N/A',
+        pangkatGolongan: employee.rank || employee.pangkat || employee.golongan || 'N/A',
+        jenisKelamin: employee.jenis_kelamin || employee.gender || null,
+        jenisJabatan: employee.jenis_jabatan || null,
+        statusKepegawaian: employee.status_kepegawaian || null,
+        pendidikanTerakhir: employee.pendidikan_terakhir || null,
+        alamat: employee.alamat || null,
+        tempatLahir: employee.tempat_lahir || null,
+        tanggalLahir: employee.tanggal_lahir || null,
+        tmt: employee.tmt || null,
+      };
+
+      return {
+        employee: formattedEmployee,
+        submissions: submissions || []
+      };
+    });
+  }
+
   async getEmployees(filters = {}) {
     return withErrorHandling(async () => {
       let query = supabase
