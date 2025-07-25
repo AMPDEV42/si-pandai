@@ -9,32 +9,59 @@ import { apiLogger } from '../lib/logger';
 class EmployeeService {
   /**
    * Get all employees with optional filters
+   * Temporarily using profiles table until employees table is created
    */
   async getEmployees(filters = {}) {
     return withErrorHandling(async () => {
       let query = supabase
-        .from('employees')
-        .select('*')
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          email,
+          unit_kerja,
+          nip,
+          phone,
+          role,
+          created_at,
+          updated_at
+        `)
         .order('full_name', { ascending: true });
 
       // Apply filters
       if (filters.search) {
         query = query.or(`full_name.ilike.%${filters.search}%,nip.ilike.%${filters.search}%,unit_kerja.ilike.%${filters.search}%`);
       }
-      
+
       if (filters.unitKerja) {
         query = query.eq('unit_kerja', filters.unitKerja);
       }
-      
-      if (filters.status) {
-        query = query.eq('status', filters.status);
-      }
-      
+
       if (filters.limit) {
         query = query.limit(filters.limit);
       }
 
-      return await query;
+      const result = await query;
+
+      // Transform profiles data to employee format
+      if (result.data) {
+        result.data = result.data.map(profile => ({
+          id: profile.id,
+          full_name: profile.full_name || profile.email,
+          nip: profile.nip || 'N/A',
+          email: profile.email,
+          phone: profile.phone,
+          unit_kerja: profile.unit_kerja || 'N/A',
+          position: 'N/A', // Will be available when employees table is created
+          rank: 'N/A', // Will be available when employees table is created
+          employee_type: 'PNS', // Default value
+          status: 'active', // Default value
+          created_at: profile.created_at,
+          updated_at: profile.updated_at
+        }));
+      }
+
+      return result;
     }, 'getEmployees');
   }
 
