@@ -96,10 +96,20 @@ const NotificationCenter = () => {
       setUnreadCount(unread);
     } catch (err) {
       console.error('Error loading notifications:', err);
-      const errorMessage = err.message?.includes('column')
-        ? 'Sistem notifikasi sedang dalam pemeliharaan. Fitur akan kembali normal sebentar lagi.'
-        : 'Gagal memuat notifikasi. Silakan muat ulang halaman.';
-      setError(errorMessage);
+
+      // Check if it's a network error
+      const isNetworkError = err.message?.includes('Failed to fetch') ||
+                            err.message?.includes('Network request failed') ||
+                            err.message?.includes('fetch failed');
+
+      if (isNetworkError) {
+        setError(err); // Pass the full error object for NetworkErrorHandler
+      } else {
+        const errorMessage = err.message?.includes('column')
+          ? 'Sistem notifikasi sedang dalam pemeliharaan. Fitur akan kembali normal sebentar lagi.'
+          : 'Gagal memuat notifikasi. Silakan muat ulang halaman.';
+        setError(new Error(errorMessage));
+      }
     } finally {
       setIsLoading(false);
     }
