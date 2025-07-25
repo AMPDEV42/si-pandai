@@ -48,12 +48,28 @@ export default function DataPegawai() {
     try {
       const data = await getPegawai();
       setPegawai(data);
+      setFilteredPegawai(data);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching pegawai:', error);
       setIsLoading(false);
     }
   };
+
+  // Search functionality
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredPegawai(pegawai);
+    } else {
+      const filtered = pegawai.filter(p =>
+        (p.nama || p.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.nip || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.unitKerja || p.unit_kerja || p.unit || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.jabatan || p.position || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredPegawai(filtered);
+    }
+  }, [searchTerm, pegawai]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
