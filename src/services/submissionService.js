@@ -18,13 +18,13 @@ class SubmissionService {
         .from('submissions')
         .select(`
           *,
-          submitter:profiles!submissions_submitted_by_fkey(
+          submitter:profiles!submitted_by(
             id,
             full_name,
             email,
             unit_kerja
           ),
-          reviewer:profiles!submissions_reviewed_by_fkey(
+          reviewer:profiles!reviewed_by(
             id,
             full_name,
             email
