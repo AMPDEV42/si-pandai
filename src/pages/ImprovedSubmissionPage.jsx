@@ -27,8 +27,10 @@ import { useAuth } from '../contexts/SupabaseAuthContext';
 import { useToast } from '../components/ui/use-toast';
 import EmployeeSelection from '../components/submission/EmployeeSelection';
 import RequirementUpload from '../components/submission/RequirementUpload';
+import GoogleDriveAuth from '../components/common/GoogleDriveAuth';
 import { getSubmissionTypeById } from '../data/submissionTypes';
 import { submissionService } from '../services/submissionService';
+import { googleDriveService } from '../services/googleDriveService';
 import { apiLogger } from '../lib/logger';
 
 const STEPS = {
