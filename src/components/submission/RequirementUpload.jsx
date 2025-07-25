@@ -199,10 +199,13 @@ const RequirementUpload = ({
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <h4 className="font-medium text-white text-sm">
-                  {requirement.name}
+                  {requirement.title || requirement.name}
                 </h4>
+                <p className="text-xs text-gray-400 mt-1">
+                  Dokumen yang harus diupload: {requirement.title || requirement.name}
+                </p>
                 {requirement.description && (
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-300 mt-1">
                     {requirement.description}
                   </p>
                 )}
