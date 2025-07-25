@@ -103,23 +103,26 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
 
     } catch (error) {
       apiLogger.error('Google Drive authentication failed', error);
-      
+
       let errorMessage = 'Gagal melakukan autentikasi Google Drive.';
-      
+      let isDomain = false;
+
       // Handle specific error cases
       if (error.message.includes('popup')) {
         errorMessage = 'Popup diblokir browser. Pastikan popup diizinkan untuk website ini.';
       } else if (error.message.includes('access_denied')) {
         errorMessage = 'Akses ditolak. Silakan berikan izin untuk mengakses Google Drive.';
-      } else if (error.message.includes('origin')) {
-        errorMessage = 'Domain tidak diotorisasi. Hubungi administrator untuk mengkonfigurasi OAuth.';
+      } else if (error.message.includes('origin') || error.message.includes('domain') || error.message.includes('Domain authorization')) {
+        errorMessage = 'Domain tidak diotorisasi dalam Google Cloud Console.';
+        isDomain = true;
       } else if (error.message.includes('quota')) {
         errorMessage = 'Quota API tercapai. Coba lagi dalam beberapa saat.';
       } else {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
+      setIsDomainError(isDomain);
       setIsAuthenticated(false);
       onAuthChange(false);
     } finally {
