@@ -316,10 +316,21 @@ export default function DataPegawai() {
         </div>
       </motion.div>
 
-      <motion.div 
+      {/* Employee Statistics */}
+      {!isLoading && pegawai.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <EmployeeStats employees={pegawai} />
+        </motion.div>
+      )}
+
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.15 }}
       >
         <Card className="bg-gray-900/50 backdrop-blur-lg border border-white/10 shadow-xl">
         <CardContent className="p-0">
