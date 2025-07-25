@@ -61,9 +61,14 @@ class GoogleDriveService {
         throw new Error('Google Drive credentials not found in environment variables');
       }
 
+      // Log domain information for debugging
+      const currentDomain = window.location.origin;
       apiLogger.info('Initializing Google Drive API', {
         hasApiKey: !!config.googleDrive.apiKey,
-        hasClientId: !!config.googleDrive.clientId
+        hasClientId: !!config.googleDrive.clientId,
+        currentDomain,
+        apiKeyPrefix: config.googleDrive.apiKey?.substring(0, 10) + '...',
+        clientIdPrefix: config.googleDrive.clientId?.substring(0, 20) + '...'
       });
 
       // Load Google API script
