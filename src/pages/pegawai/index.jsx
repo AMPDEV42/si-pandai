@@ -284,13 +284,17 @@ export default function DataPegawai() {
                 {pegawai.length > 0 ? (
                   pegawai.map((p) => (
                     <TableRow key={p.id} className="hover:bg-white/5 transition-colors">
-                      <TableCell className="text-white/90">{p.nama}</TableCell>
-                      <TableCell className="text-white/70">{p.nip}</TableCell>
-                      <TableCell className="text-white/70">{p.pangkatGolongan || p.pangkat_golongan || 'N/A'}</TableCell>
-                      <TableCell className="text-white/70">{p.jabatan || 'N/A'}</TableCell>
-                      <TableCell className="text-white/70">{p.unitKerja || p.unit_kerja || 'N/A'}</TableCell>
+                      <TableCell className="text-white/90">{p.nama || p.full_name || 'N/A'}</TableCell>
+                      <TableCell className="text-white/70">{p.nip || 'N/A'}</TableCell>
                       <TableCell className="text-white/70">
-                        {p.masaKerja?.tahun || p.masa_kerja?.tahun || 0} tahun {p.masaKerja?.bulan || p.masa_kerja?.bulan || 0} bulan
+                        {p.pangkatGolongan || p.pangkat_golongan || p.pangkat || p.golongan || 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-white/70">{p.jabatan || p.position || 'N/A'}</TableCell>
+                      <TableCell className="text-white/70">
+                        {p.unitKerja || p.unit_kerja || p.unit || p.bagian || 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-white/70">
+                        {(p.masaKerja?.tahun || p.masa_kerja?.tahun || 0)} tahun {(p.masaKerja?.bulan || p.masa_kerja?.bulan || 0)} bulan
                       </TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button
