@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Bell, X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/customSupabaseClient';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationService';
 
 const ICON_MAP = {
   info: <Info className="w-4 h-4 text-blue-500" />,
@@ -14,17 +15,58 @@ const formatTimeAgo = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now - date) / 1000);
-  
+
   if (diffInSeconds < 60) return 'Baru saja';
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} menit yang lalu`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} jam yang lalu`;
-  
+
   return date.toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'short',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   });
 };
+
+// Memoize the notification item component for better performance
+const NotificationItem = React.memo(({ notification, onMarkAsRead, onNotificationClick }) => {
+  return (
+    <li
+      className={`relative hover:bg-gray-50 transition-colors ${
+        !notification.is_read ? 'bg-blue-50' : ''
+      } ${notification.isNew ? 'animate-pulse' : ''}`}
+    >
+      <a
+        href={notification.link || '#'}
+        className="block p-3"
+        onClick={(e) => onNotificationClick(notification, e)}
+      >
+        <div className="flex items-start">
+          <div className="flex-shrink-0 pt-0.5">
+            {ICON_MAP.info}
+          </div>
+          <div className="ml-3 flex-1 min-w-0">
+            <div className="flex justify-between">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {notification.title}
+              </p>
+              <div className="text-xs text-gray-500 whitespace-nowrap ml-2">
+                {formatTimeAgo(notification.created_at)}
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">
+              {notification.message}
+            </p>
+          </div>
+        </div>
+        {!notification.is_read && (
+          <div className="absolute top-3 right-3">
+            <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+          </div>
+        )}
+      </a>
+    </li>
+  );
+});
 
 const NotificationCenter = () => {
   const { user } = useAuth();
@@ -36,26 +78,27 @@ const NotificationCenter = () => {
 
   const loadNotifications = useCallback(async () => {
     if (!user?.id) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const { data, error: fetchError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      const result = await getNotifications(user.id, { limit: 20 });
 
-      if (fetchError) throw fetchError;
+      if (result.error) {
+        throw result.error;
+      }
 
-      setNotifications(data || []);
-      const unread = (data || []).filter(n => !n.is_read).length;
+      const data = result.data || [];
+      setNotifications(data);
+      const unread = data.filter(n => !n.is_read).length;
       setUnreadCount(unread);
     } catch (err) {
       console.error('Error loading notifications:', err);
-      setError('Gagal memuat notifikasi. Silakan muat ulang halaman.');
+      const errorMessage = err.message?.includes('column')
+        ? 'Sistem notifikasi sedang dalam pemeliharaan. Fitur akan kembali normal sebentar lagi.'
+        : 'Gagal memuat notifikasi. Silakan muat ulang halaman.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -66,40 +109,19 @@ const NotificationCenter = () => {
 
     loadNotifications();
 
-    const subscription = supabase
-      .channel('notifications')
-      .on('postgres_changes', 
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setNotifications(prev => [
-              { ...payload.new, isNew: true }, 
-              ...prev.filter(n => n.id !== payload.new.id)
-            ]);
-            setUnreadCount(prev => prev + 1);
-          } else if (payload.eventType === 'UPDATE') {
-            setNotifications(prev => 
-              prev.map(n => n.id === payload.new.id ? { ...payload.new, isNew: false } : n)
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
-            setUnreadCount(prev => Math.max(0, prev - 1));
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error('Error subscribing to notifications channel');
-        }
-      });
+    // Disable real-time notifications for now to prevent errors
+    // TODO: Re-enable when notifications table is properly configured
+    console.log('Real-time notifications disabled - using polling instead');
+
+    // Set up periodic polling as fallback
+    const pollInterval = setInterval(() => {
+      if (user?.id) {
+        loadNotifications();
+      }
+    }, 30000); // Poll every 30 seconds
 
     return () => {
-      supabase.removeChannel(subscription);
+      clearInterval(pollInterval);
     };
   }, [user?.id, loadNotifications]);
 
@@ -110,12 +132,7 @@ const NotificationCenter = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id);
-
-      if (error) throw error;
+      await markNotificationAsRead(id);
 
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
@@ -127,19 +144,12 @@ const NotificationCenter = () => {
   };
 
   const markAllAsRead = async () => {
-    const unreadIds = notifications
-      .filter(n => !n.is_read)
-      .map(n => n.id);
+    const unreadCount = notifications.filter(n => !n.is_read).length;
 
-    if (unreadIds.length === 0) return;
+    if (unreadCount === 0) return;
 
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .in('id', unreadIds);
-
-      if (error) throw error;
+      await markAllNotificationsAsRead(user.id);
 
       setNotifications(prev =>
         prev.map(n => ({ ...n, is_read: true }))
@@ -240,42 +250,12 @@ const NotificationCenter = () => {
             ) : (
               <ul className="divide-y divide-gray-100">
                 {notifications.map((notification) => (
-                  <li
+                  <NotificationItem
                     key={notification.id}
-                    className={`relative hover:bg-gray-50 transition-colors ${
-                      !notification.is_read ? 'bg-blue-50' : ''
-                    } ${notification.isNew ? 'animate-pulse' : ''}`}
-                  >
-                    <a
-                      href={notification.link || '#'}
-                      className="block p-3"
-                      onClick={(e) => handleNotificationClick(notification, e)}
-                    >
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 pt-0.5">
-                          {ICON_MAP[notification.type] || ICON_MAP.info}
-                        </div>
-                        <div className="ml-3 flex-1 min-w-0">
-                          <div className="flex justify-between">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {notification.title}
-                            </p>
-                            <div className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                              {formatTimeAgo(notification.created_at)}
-                            </div>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {notification.message}
-                          </p>
-                        </div>
-                      </div>
-                      {!notification.is_read && (
-                        <div className="absolute top-3 right-3">
-                          <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-                        </div>
-                      )}
-                    </a>
-                  </li>
+                    notification={notification}
+                    onMarkAsRead={markAsRead}
+                    onNotificationClick={handleNotificationClick}
+                  />
                 ))}
               </ul>
             )}

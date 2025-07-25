@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
-import { getSubmissionsByCategory } from '@/data/submissionTypes';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { useAuth } from '../contexts/SupabaseAuthContext';
+import { getSubmissionsByCategory } from '../data/submissionTypes';
+import { submissionService } from '../services/submissionService';
+import { apiLogger } from '../lib/logger';
 import { 
   Plus, 
   FileText, 
@@ -22,6 +24,8 @@ const AdminUnitDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -35,32 +39,63 @@ const AdminUnitDashboard = () => {
   useEffect(() => {
     if (!user) return;
 
-    const savedSubmissions = localStorage.getItem('sipandai_submissions');
-    if (savedSubmissions) {
-      const allSubmissions = JSON.parse(savedSubmissions);
-      const userSubmissions = allSubmissions.filter(sub => sub.submittedBy === user.id);
-      setSubmissions(userSubmissions);
-      
-      const newStats = {
-        total: userSubmissions.length,
-        pending: userSubmissions.filter(sub => sub.status === 'pending').length,
-        approved: userSubmissions.filter(sub => sub.status === 'approved').length,
-        rejected: userSubmissions.filter(sub => sub.status === 'rejected').length,
-        revision: userSubmissions.filter(sub => sub.status === 'revision').length
-      };
-      setStats(newStats);
-    }
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // For admin-unit, show their unit's submissions
+        // For regular users, show only their own submissions
+        const filters = user.role === 'admin-unit'
+          ? { unitKerja: user.unit_kerja || user.unitKerja, limit: 20 }
+          : { submittedBy: user.id, limit: 20 };
+
+        const [submissionsResult, statsResult] = await Promise.all([
+          submissionService.getSubmissions(filters),
+          submissionService.getSubmissionStats(filters)
+        ]);
+
+        if (submissionsResult.error) {
+          throw new Error(submissionsResult.error.message);
+        }
+
+        if (statsResult.error) {
+          throw new Error(statsResult.error.message);
+        }
+
+        setSubmissions(submissionsResult.data || []);
+        setStats(statsResult.data || {
+          total: 0, pending: 0, approved: 0, rejected: 0, revision: 0
+        });
+
+        apiLogger.info('Unit dashboard data loaded successfully', {
+          userId: user.id,
+          role: user.role,
+          submissionsCount: submissionsResult.data?.length || 0
+        });
+
+      } catch (err) {
+        apiLogger.error('Failed to load unit dashboard data', err);
+        setError('Gagal memuat data dashboard. Silakan coba lagi.');
+        setSubmissions([]);
+        setStats({ total: 0, pending: 0, approved: 0, rejected: 0, revision: 0 });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [user]);
 
-  const handleNewSubmission = (typeId) => {
+  const handleNewSubmission = useCallback((typeId) => {
     navigate(`/dashboard/submission/new/${typeId}`);
-  };
+  }, [navigate]);
 
-  const handleViewSubmission = (submissionId) => {
+  const handleViewSubmission = useCallback((submissionId) => {
     navigate(`/dashboard/submission/${submissionId}`);
-  };
+  }, [navigate]);
 
-  const getStatusColor = (status) => {
+  const getStatusColor = useCallback((status) => {
     switch (status) {
       case 'pending': return 'bg-yellow-500';
       case 'approved': return 'bg-green-500';
@@ -68,9 +103,9 @@ const AdminUnitDashboard = () => {
       case 'revision': return 'bg-purple-500';
       default: return 'bg-gray-500';
     }
-  };
+  }, []);
 
-  const getStatusText = (status) => {
+  const getStatusText = useCallback((status) => {
     switch (status) {
       case 'pending': return 'Menunggu';
       case 'approved': return 'Disetujui';
@@ -78,7 +113,7 @@ const AdminUnitDashboard = () => {
       case 'revision': return 'Revisi';
       default: return 'Unknown';
     }
-  };
+  }, []);
 
   if (!user) return null;
 
@@ -95,7 +130,7 @@ const AdminUnitDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-3xl font-bold text-white">Dashboard Admin Unit</h1>
-          <p className="text-gray-300 mt-1">Selamat datang, {user.name}! Kelola usulan Anda di sini.</p>
+          <p className="text-gray-300 mt-1">Selamat datang, {user?.name || user?.email}! Kelola usulan Anda di sini.</p>
         </motion.div>
 
         <motion.div
@@ -228,7 +263,24 @@ const AdminUnitDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {submissions.length === 0 ? (
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="p-4 rounded-lg bg-white/5 border border-white/10 animate-pulse">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                          <div className="h-3 bg-white/10 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                    <p className="text-red-400">Terjadi Kesalahan</p>
+                    <p className="text-sm text-gray-500 mt-1">{error}</p>
+                  </div>
+                ) : submissions.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-400">Belum ada usulan</p>
@@ -255,7 +307,7 @@ const AdminUnitDashboard = () => {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-400">
                           <Calendar className="w-3 h-3" />
-                          {new Date(submission.createdAt).toLocaleDateString('id-ID')}
+                          {new Date(submission.created_at).toLocaleDateString('id-ID')}
                         </div>
                       </motion.div>
                     ))}

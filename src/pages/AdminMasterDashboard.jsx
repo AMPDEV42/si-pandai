@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { DashboardStatsSkeleton, SubmissionListSkeleton, LoadingOverlay } from '../components/common/LoadingSkeletons';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import { useAuth } from '../contexts/SupabaseAuthContext';
+import { submissionService } from '../services/submissionService';
+import { apiLogger } from '../lib/logger';
 import { 
   FileText, 
   Clock, 
@@ -25,9 +28,11 @@ const AdminMasterDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
-  const [filteredSubmissions, setFilteredSubmissions] = useState([]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -39,27 +44,53 @@ const AdminMasterDashboard = () => {
   useEffect(() => {
     if (!user) return;
 
-    const savedSubmissions = localStorage.getItem('sipandai_submissions');
-    if (savedSubmissions) {
-      const allSubmissions = JSON.parse(savedSubmissions);
-      setSubmissions(allSubmissions);
-      
-      const newStats = {
-        total: allSubmissions.length,
-        pending: allSubmissions.filter(sub => sub.status === 'pending').length,
-        approved: allSubmissions.filter(sub => sub.status === 'approved').length,
-        rejected: allSubmissions.filter(sub => sub.status === 'rejected').length,
-        revision: allSubmissions.filter(sub => sub.status === 'revision').length
-      };
-      setStats(newStats);
-    }
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Load submissions and statistics
+        const [submissionsResult, statsResult] = await Promise.all([
+          submissionService.getSubmissions({ limit: 50 }),
+          submissionService.getSubmissionStats()
+        ]);
+
+        if (submissionsResult.error) {
+          throw new Error(submissionsResult.error.message);
+        }
+
+        if (statsResult.error) {
+          throw new Error(statsResult.error.message);
+        }
+
+        setSubmissions(submissionsResult.data || []);
+        setStats(statsResult.data || {
+          total: 0, pending: 0, approved: 0, rejected: 0, revision: 0
+        });
+
+        apiLogger.info('Dashboard data loaded successfully', {
+          submissionsCount: submissionsResult.data?.length || 0,
+          stats: statsResult.data
+        });
+
+      } catch (err) {
+        apiLogger.error('Failed to load dashboard data', err);
+        setError('Gagal memuat data dashboard. Silakan coba lagi.');
+        setSubmissions([]);
+        setStats({ total: 0, pending: 0, approved: 0, rejected: 0, revision: 0 });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [user]);
 
-  useEffect(() => {
+  const filteredSubmissions = useMemo(() => {
     let filtered = submissions;
 
     if (searchTerm) {
-      filtered = filtered.filter(sub => 
+      filtered = filtered.filter(sub =>
         sub.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.submitterName.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -69,14 +100,14 @@ const AdminMasterDashboard = () => {
       filtered = filtered.filter(sub => sub.status === filterStatus);
     }
 
-    setFilteredSubmissions(filtered);
+    return filtered;
   }, [submissions, searchTerm, filterStatus]);
 
-  const handleViewSubmission = (submissionId) => {
+  const handleViewSubmission = useCallback((submissionId) => {
     navigate(`/dashboard/submission/${submissionId}`);
-  };
+  }, [navigate]);
 
-  const getStatusColor = (status) => {
+  const getStatusColor = useCallback((status) => {
     switch (status) {
       case 'pending': return 'bg-yellow-500';
       case 'approved': return 'bg-green-500';
@@ -84,9 +115,9 @@ const AdminMasterDashboard = () => {
       case 'revision': return 'bg-purple-500';
       default: return 'bg-gray-500';
     }
-  };
+  }, []);
 
-  const getStatusText = (status) => {
+  const getStatusText = useCallback((status) => {
     switch (status) {
       case 'pending': return 'Menunggu';
       case 'approved': return 'Disetujui';
@@ -94,7 +125,7 @@ const AdminMasterDashboard = () => {
       case 'revision': return 'Revisi';
       default: return 'Unknown';
     }
-  };
+  }, []);
 
   if (!user) return null;
 
@@ -111,7 +142,7 @@ const AdminMasterDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-3xl font-bold text-white">Dashboard Admin Master</h1>
-          <p className="text-gray-300 mt-1">Selamat datang kembali, {user.name}!</p>
+          <p className="text-gray-300 mt-1">Selamat datang kembali, {user?.name || user?.email}!</p>
         </motion.div>
 
         <motion.div
@@ -120,61 +151,67 @@ const AdminMasterDashboard = () => {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
         >
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Total Usulan</p>
-                  <p className="text-3xl font-bold text-white">{stats.total}</p>
-                </div>
-                <FileText className="w-8 h-8 text-blue-400" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Menunggu</p>
-                  <p className="text-3xl font-bold text-yellow-400">{stats.pending}</p>
-                </div>
-                <Clock className="w-8 h-8 text-yellow-400" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Disetujui</p>
-                  <p className="text-3xl font-bold text-green-400">{stats.approved}</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-green-400" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Revisi</p>
-                  <p className="text-3xl font-bold text-purple-400">{stats.revision}</p>
-                </div>
-                <AlertCircle className="w-8 h-8 text-purple-400" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-effect border-white/20 card-hover">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Ditolak</p>
-                  <p className="text-3xl font-bold text-red-400">{stats.rejected}</p>
-                </div>
-                <XCircle className="w-8 h-8 text-red-400" />
-              </div>
-            </CardContent>
-          </Card>
+          {isLoading ? (
+            <DashboardStatsSkeleton />
+          ) : (
+            <>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Total Usulan</p>
+                      <p className="text-3xl font-bold text-white">{stats.total}</p>
+                    </div>
+                    <FileText className="w-8 h-8 text-blue-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Menunggu</p>
+                      <p className="text-3xl font-bold text-yellow-400">{stats.pending}</p>
+                    </div>
+                    <Clock className="w-8 h-8 text-yellow-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Disetujui</p>
+                      <p className="text-3xl font-bold text-green-400">{stats.approved}</p>
+                    </div>
+                    <CheckCircle className="w-8 h-8 text-green-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Revisi</p>
+                      <p className="text-3xl font-bold text-purple-400">{stats.revision}</p>
+                    </div>
+                    <AlertCircle className="w-8 h-8 text-purple-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="glass-effect border-white/20 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-300">Ditolak</p>
+                      <p className="text-3xl font-bold text-red-400">{stats.rejected}</p>
+                    </div>
+                    <XCircle className="w-8 h-8 text-red-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </motion.div>
 
         <motion.div
@@ -224,13 +261,28 @@ const AdminMasterDashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {filteredSubmissions.length === 0 ? (
+              {error ? (
+                <div className="text-center py-12">
+                  <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                  <p className="text-red-400 text-lg">Terjadi Kesalahan</p>
+                  <p className="text-sm text-gray-500 mt-1">{error}</p>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    className="mt-4"
+                    variant="outline"
+                  >
+                    Muat Ulang
+                  </Button>
+                </div>
+              ) : filteredSubmissions.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400 text-lg">Tidak ada usulan ditemukan</p>
+                  <p className="text-gray-400 text-lg">
+                    {isLoading ? 'Memuat data...' : 'Tidak ada usulan ditemukan'}
+                  </p>
                   <p className="text-sm text-gray-500 mt-1">
-                    {searchTerm || filterStatus !== 'all' 
-                      ? 'Coba ubah filter atau kata kunci pencarian' 
+                    {searchTerm || filterStatus !== 'all'
+                      ? 'Coba ubah filter atau kata kunci pencarian'
                       : 'Belum ada usulan yang diajukan'
                     }
                   </p>
@@ -255,15 +307,15 @@ const AdminMasterDashboard = () => {
                           <div className="flex items-center gap-4 text-sm text-gray-400">
                             <div className="flex items-center gap-1">
                               <Users className="w-4 h-4" />
-                              {submission.submitterName}
+                              {submission.submitter?.full_name || submission.submitter?.email || 'Unknown User'}
                             </div>
                             <div className="flex items-center gap-1">
                               <Building2 className="w-4 h-4" />
-                              {submission.personalInfo.unit || 'Unit Kerja'}
+                              {submission.unit_kerja || submission.submitter?.unit_kerja || 'Unit Kerja'}
                             </div>
                             <div className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
-                              {new Date(submission.createdAt).toLocaleDateString('id-ID')}
+                              {new Date(submission.created_at).toLocaleDateString('id-ID')}
                             </div>
                           </div>
                         </div>

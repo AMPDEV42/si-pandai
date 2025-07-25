@@ -30,7 +30,8 @@ const NewSubmissionPage = () => {
     e.stopPropagation();
     const type = getSubmissionTypeById(typeId);
     if (type) {
-      setSelectedType(type);
+      // Navigate to improved submission page
+      navigate(`/pengajuan/baru/${typeId}`);
     } else {
       toast({
         title: 'Error',

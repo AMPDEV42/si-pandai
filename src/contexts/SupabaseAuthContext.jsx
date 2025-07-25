@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { supabase } from '../lib/customSupabaseClient';
 import { useToast } from '../components/ui/use-toast';
 import { sendNotification } from '../services/notificationService';
+import { authLogger } from '../lib/logger';
+import { validateEmail, validatePassword, validateUserRegistration } from '../lib/validation';
 
 const AuthContext = createContext(undefined);
 
@@ -24,13 +26,16 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       if (error) {
-        console.error('Error fetching user profile:', error);
+        authLogger.error('Error fetching user profile', error);
+        // Don't throw error, just log it and continue with basic user data
       }
 
       // Combine user data with profile data
       setUser({
         ...session.user,
-        role: profile?.role || session.user.user_metadata?.role
+        name: profile?.full_name || session.user.user_metadata?.full_name || session.user.email,
+        role: profile?.role || session.user.user_metadata?.role,
+        unitKerja: profile?.unit_kerja || session.user.user_metadata?.unit_kerja
       });
     } else {
       setUser(null);
@@ -129,14 +134,18 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      // Kirim notifikasi login berhasil
+      // Kirim notifikasi login berhasil (with error handling)
       if (data?.user) {
-        await sendNotification({
-          userId: data.user.id,
-          title: 'Login Berhasil',
-          message: 'Anda berhasil masuk ke sistem SIPANDAI',
-          type: 'success'
-        });
+        try {
+          await sendNotification({
+            userId: data.user.id,
+            title: 'Login Berhasil',
+            message: 'Anda berhasil masuk ke sistem SIPANDAI'
+          });
+        } catch (notifError) {
+          authLogger.error('Error sending login notification', notifError);
+          // Don't block login flow if notification fails
+        }
       }
 
       toast({
@@ -151,7 +160,7 @@ export const AuthProvider = ({ children }) => {
 
       return data;
     } catch (error) {
-      console.error('Login error:', error);
+      authLogger.error('Login error', error);
       setError(error.message);
       toast({
         variant: 'destructive',
@@ -182,7 +191,7 @@ export const AuthProvider = ({ children }) => {
         description: 'Anda telah berhasil logout',
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      authLogger.error('Logout error', error);
       toast({
         variant: 'destructive',
         title: 'Gagal Logout',
