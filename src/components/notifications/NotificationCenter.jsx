@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Bell, X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/customSupabaseClient';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationService';
 
 const ICON_MAP = {
   info: <Info className="w-4 h-4 text-blue-500" />,
@@ -77,29 +78,24 @@ const NotificationCenter = () => {
 
   const loadNotifications = useCallback(async () => {
     if (!user?.id) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
 
-      if (fetchError) {
-        console.error('Fetch error:', fetchError);
-        throw fetchError;
+    try {
+      const result = await getNotifications(user.id, { limit: 20 });
+
+      if (result.error) {
+        throw result.error;
       }
 
-      setNotifications(data || []);
-      const unread = (data || []).filter(n => !n.is_read).length;
+      const data = result.data || [];
+      setNotifications(data);
+      const unread = data.filter(n => !n.is_read).length;
       setUnreadCount(unread);
     } catch (err) {
       console.error('Error loading notifications:', err);
-      const errorMessage = err.message?.includes('type')
+      const errorMessage = err.message?.includes('column')
         ? 'Sistem notifikasi sedang dalam pemeliharaan. Fitur akan kembali normal sebentar lagi.'
         : 'Gagal memuat notifikasi. Silakan muat ulang halaman.';
       setError(errorMessage);
