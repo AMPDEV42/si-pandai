@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { DashboardStatsSkeleton, SubmissionListSkeleton, LoadingOverlay } from '../components/common/LoadingSkeletons';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
