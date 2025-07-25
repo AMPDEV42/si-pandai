@@ -125,6 +125,14 @@ const AppContent = () => {
             ),
           },
           {
+            path: "/pengajuan/baru/:submissionTypeId",
+            element: (
+              <ProtectedRoute allowedRoles={['admin-unit', 'user', 'admin-master']}>
+                <ImprovedSubmissionPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
             path: "/pengajuan/baru/old",
             element: (
               <ProtectedRoute allowedRoles={['admin-unit', 'admin-master']}>
