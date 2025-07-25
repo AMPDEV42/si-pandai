@@ -10,9 +10,11 @@ const requiredEnvVars = [
 
 const optionalEnvVars = [
   'VITE_EMAIL_HOST',
-  'VITE_EMAIL_PORT', 
+  'VITE_EMAIL_PORT',
   'VITE_EMAIL_USER',
-  'VITE_EMAIL_PASSWORD'
+  'VITE_EMAIL_PASSWORD',
+  'VITE_GOOGLE_DRIVE_API_KEY',
+  'VITE_GOOGLE_DRIVE_CLIENT_ID'
 ];
 
 class ConfigError extends Error {
@@ -61,6 +63,15 @@ export const config = {
     user: import.meta.env.VITE_EMAIL_USER || '',
     password: import.meta.env.VITE_EMAIL_PASSWORD || '',
     enabled: !!(import.meta.env.VITE_EMAIL_USER && import.meta.env.VITE_EMAIL_PASSWORD)
+  },
+
+  // Google Drive Integration
+  googleDrive: {
+    apiKey: import.meta.env.VITE_GOOGLE_DRIVE_API_KEY || '',
+    clientId: import.meta.env.VITE_GOOGLE_DRIVE_CLIENT_ID || '',
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    discoveryDoc: 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
+    enabled: !!(import.meta.env.VITE_GOOGLE_DRIVE_API_KEY && import.meta.env.VITE_GOOGLE_DRIVE_CLIENT_ID)
   },
   
   // Security
