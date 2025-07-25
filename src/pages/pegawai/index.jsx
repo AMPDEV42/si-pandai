@@ -21,9 +21,11 @@ import {
 
 export default function DataPegawai() {
   const [pegawai, setPegawai] = useState([]);
+  const [filteredPegawai, setFilteredPegawai] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     nama: '',
     nip: '',
