@@ -41,7 +41,7 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const RequirementsChecklist = ({ submissionType, formData, handleFileUpload, handleRequirementCheck }) => {
+const RequirementsChecklist = ({ submissionType, formData, handleFileUpload, handleRequirementCheck, uploading = {} }) => {
   const [activeAccordion, setActiveAccordion] = useState(null);
   
   const toggleAccordion = (index) => {
@@ -97,11 +97,13 @@ const RequirementsChecklist = ({ submissionType, formData, handleFileUpload, han
                       id={`req-${index}`}
                       checked={isChecked}
                       onCheckedChange={(checked) => handleRequirementCheck(index, checked)}
+                      disabled={uploading[index]}
                       className={cn(
                         "h-5 w-5 rounded-md border-2 transition-colors",
                         isChecked 
                           ? "border-green-500 bg-green-500 text-green-500" 
-                          : "border-gray-500 hover:border-gray-400"
+                          : "border-gray-500 hover:border-gray-400",
+                        uploading[index] ? "opacity-50 cursor-not-allowed" : ""
                       )}
                     />
                   </div>
@@ -141,9 +143,19 @@ const RequirementsChecklist = ({ submissionType, formData, handleFileUpload, han
                         >
                           <div className="pt-4 space-y-4">
                             {!hasFile ? (
-                              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-700 rounded-lg text-center">
-                                <Upload className="w-8 h-8 text-gray-500 mb-2" />
-                                <p className="text-sm text-gray-400 mb-3">Unggah file untuk persyaratan ini</p>
+                              <div className={cn("flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg text-center", 
+                                uploading[index] 
+                                  ? "border-blue-500 bg-blue-500/10" 
+                                  : "border-gray-700 hover:border-blue-500/50 cursor-pointer"
+                              )}>
+                                {uploading[index] ? (
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2"></div>
+                                ) : (
+                                  <Upload className="w-8 h-8 text-gray-500 mb-2" />
+                                )}
+                                <p className="text-sm text-gray-400 mb-3">
+                                  {uploading[index] ? 'Mengunggah...' : 'Unggah file untuk persyaratan ini'}
+                                </p>
                                 <input
                                   type="file"
                                   id={`file-${index}`}

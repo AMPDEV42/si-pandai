@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { sendNotification } from '@/services/notificationService';
 import { getSubmissionTypeById } from '@/data/submissionTypes';
+import { googleDriveService } from '@/services/googleDriveService';
 import PersonalInfoForm from '@/components/submission/PersonalInfoForm';
 import RequirementsChecklist from '@/components/submission/RequirementsChecklist';
 import AdditionalNotes from '@/components/submission/AdditionalNotes';
@@ -19,6 +20,7 @@ const SubmissionForm = ({ type: propType, onSuccess, onCancel }) => {
   const { toast } = useToast();
   const [submissionType, setSubmissionType] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState({});
   
   // Use prop type if provided, otherwise use URL param
   const type = propType || urlType;
@@ -83,9 +85,36 @@ const SubmissionForm = ({ type: propType, onSuccess, onCancel }) => {
     }));
   };
 
-  const handleFileUpload = (requirementIndex, event) => {
+  const handleFileUpload = async (requirementIndex, event) => {
     const file = event.target.files[0];
-    if (file) {
+    if (!file) return;
+
+    // Set status uploading
+    setUploading(prev => ({ ...prev, [requirementIndex]: true }));
+
+    try {
+      // Inisialisasi Google Drive Service
+      if (!googleDriveService.isInitialized) {
+        await googleDriveService.initialize();
+      }
+
+      // Autentikasi jika belum login
+      await googleDriveService.authenticate();
+
+      // Buat struktur folder
+      const folderStructure = await googleDriveService.createSubmissionFolderStructure(
+        submissionType,
+        formData.personalInfo.name || 'Pegawai'
+      );
+
+      // Upload file ke Google Drive
+      const uploadedFile = await googleDriveService.uploadFile(
+        file, 
+        folderStructure.employeeFolderId,
+        file.name
+      );
+
+      // Update state dengan informasi file yang diupload
       setFormData(prev => ({
         ...prev,
         documents: {
@@ -94,15 +123,31 @@ const SubmissionForm = ({ type: propType, onSuccess, onCancel }) => {
             name: file.name,
             size: file.size,
             type: file.type,
-            uploadedAt: new Date().toISOString()
+            uploadedAt: new Date().toISOString(),
+            driveFileId: uploadedFile.id,
+            driveWebViewLink: uploadedFile.webViewLink,
+            driveDownloadLink: uploadedFile.webContentLink
           }
         }
       }));
+
+      toast({
+        title: 'Berhasil!',
+        description: `${file.name} berhasil diunggah ke Google Drive`,
+      });
+    } catch (error) {
+      console.error('Error uploading file to Google Drive:', error);
       
       toast({
-        title: "File berhasil diunggah",
-        description: `${file.name} telah diunggah`,
+        title: 'Gagal mengunggah file',
+        description: error.message || 'Terjadi kesalahan saat mengunggah file',
+        variant: 'destructive',
       });
+
+      // Reset file input
+      event.target.value = null;
+    } finally {
+      setUploading(prev => ({ ...prev, [requirementIndex]: false }));
     }
   };
 
@@ -317,6 +362,7 @@ const SubmissionForm = ({ type: propType, onSuccess, onCancel }) => {
               formData={formData}
               handleFileUpload={handleFileUpload}
               handleRequirementCheck={handleRequirementCheck}
+              uploading={uploading}
             />
           </motion.div>
         )}

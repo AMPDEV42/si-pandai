@@ -58,7 +58,7 @@ Google Drive/
    
    Authorized JavaScript origins:
    - http://localhost:5173 (untuk development)
-   - https://yourdomain.com (untuk production)
+   - https://sipandai.vercel.app (untuk production)
    
    Copy: Client ID yang dihasilkan
    ```
