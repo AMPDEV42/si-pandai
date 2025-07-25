@@ -130,7 +130,7 @@ class SubmissionService {
         .insert([submission])
         .select(`
           *,
-          submitter:profiles!submissions_submitted_by_fkey(
+          submitter:profiles!submitted_by(
             id,
             full_name,
             email,
