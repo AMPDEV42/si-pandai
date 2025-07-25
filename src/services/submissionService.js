@@ -25,7 +25,7 @@ class SubmissionService {
       }
 
       if (filters.submittedBy) {
-        query = query.eq('submitted_by', filters.submittedBy);
+        query = query.eq('user_id', filters.submittedBy);
       }
 
       if (filters.unitKerja) {
@@ -53,7 +53,7 @@ class SubmissionService {
       // If successful, manually fetch related profile data
       if (result.data && result.data.length > 0) {
         const userIds = [...new Set([
-          ...result.data.map(s => s.submitted_by).filter(Boolean),
+          ...result.data.map(s => s.user_id).filter(Boolean),
           ...result.data.map(s => s.reviewed_by).filter(Boolean)
         ])];
 
@@ -68,7 +68,7 @@ class SubmissionService {
 
             result.data = result.data.map(submission => ({
               ...submission,
-              submitter: profileMap[submission.submitted_by] || null,
+              submitter: profileMap[submission.user_id] || null,
               reviewer: profileMap[submission.reviewed_by] || null
             }));
           }
@@ -92,7 +92,7 @@ class SubmissionService {
 
       if (result.data) {
         // Manually fetch related data
-        const userIds = [result.data.submitted_by, result.data.reviewed_by].filter(Boolean);
+        const userIds = [result.data.user_id, result.data.reviewed_by].filter(Boolean);
 
         const [profilesResult, documentsResult] = await Promise.all([
           userIds.length > 0 ? supabase
@@ -109,7 +109,7 @@ class SubmissionService {
 
         result.data = {
           ...result.data,
-          submitter: profileMap[result.data.submitted_by] || null,
+          submitter: profileMap[result.data.user_id] || null,
           reviewer: profileMap[result.data.reviewed_by] || null,
           documents: documentsResult.data || []
         };
@@ -135,7 +135,7 @@ class SubmissionService {
         description: submissionData.description || submissionData.notes,
         submission_type: submissionData.submissionType,
         status: SUBMISSION_STATUS.PENDING,
-        submitted_by: userId,
+        user_id: userId,
         unit_kerja: submissionData.personalInfo?.unit || null,
         personal_info: submissionData.personalInfo || {},
         requirements_data: submissionData.requirements || {},
@@ -151,11 +151,11 @@ class SubmissionService {
         .single();
 
       // Manually fetch submitter profile
-      if (result.data && result.data.submitted_by) {
+      if (result.data && result.data.user_id) {
         const { data: submitter } = await supabase
           .from('profiles')
           .select('id, full_name, email, unit_kerja')
-          .eq('id', result.data.submitted_by)
+          .eq('id', result.data.user_id)
           .single();
 
         if (submitter) {
@@ -193,7 +193,7 @@ class SubmissionService {
 
       // Manually fetch related profiles
       if (result.data) {
-        const userIds = [result.data.submitted_by, result.data.reviewed_by].filter(Boolean);
+        const userIds = [result.data.user_id, result.data.reviewed_by].filter(Boolean);
 
         if (userIds.length > 0) {
           const { data: profiles } = await supabase
@@ -203,7 +203,7 @@ class SubmissionService {
 
           if (profiles) {
             const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
-            result.data.submitter = profileMap[result.data.submitted_by] || null;
+            result.data.submitter = profileMap[result.data.user_id] || null;
             result.data.reviewer = profileMap[result.data.reviewed_by] || null;
           }
         }
@@ -258,7 +258,7 @@ class SubmissionService {
 
       // Apply filters
       if (filters.submittedBy) {
-        query = query.eq('submitted_by', filters.submittedBy);
+        query = query.eq('user_id', filters.submittedBy);
       }
       
       if (filters.unitKerja) {
@@ -379,7 +379,7 @@ class SubmissionService {
 
       // Manually fetch submitter profiles
       if (result.data && result.data.length > 0) {
-        const userIds = [...new Set(result.data.map(s => s.submitted_by).filter(Boolean))];
+        const userIds = [...new Set(result.data.map(s => s.user_id).filter(Boolean))];
 
         if (userIds.length > 0) {
           const { data: profiles } = await supabase
@@ -392,7 +392,7 @@ class SubmissionService {
 
             result.data = result.data.map(submission => ({
               ...submission,
-              submitter: profileMap[submission.submitted_by] || null
+              submitter: profileMap[submission.user_id] || null
             }));
           }
         }
