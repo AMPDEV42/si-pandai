@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -71,11 +71,11 @@ const AdminMasterDashboard = () => {
     setFilteredSubmissions(filtered);
   }, [submissions, searchTerm, filterStatus]);
 
-  const handleViewSubmission = (submissionId) => {
+  const handleViewSubmission = useCallback((submissionId) => {
     navigate(`/dashboard/submission/${submissionId}`);
-  };
+  }, [navigate]);
 
-  const getStatusColor = (status) => {
+  const getStatusColor = useCallback((status) => {
     switch (status) {
       case 'pending': return 'bg-yellow-500';
       case 'approved': return 'bg-green-500';
@@ -83,9 +83,9 @@ const AdminMasterDashboard = () => {
       case 'revision': return 'bg-purple-500';
       default: return 'bg-gray-500';
     }
-  };
+  }, []);
 
-  const getStatusText = (status) => {
+  const getStatusText = useCallback((status) => {
     switch (status) {
       case 'pending': return 'Menunggu';
       case 'approved': return 'Disetujui';
@@ -93,7 +93,7 @@ const AdminMasterDashboard = () => {
       case 'revision': return 'Revisi';
       default: return 'Unknown';
     }
-  };
+  }, []);
 
   if (!user) return null;
 
