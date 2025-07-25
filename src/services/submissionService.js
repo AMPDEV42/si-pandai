@@ -188,21 +188,26 @@ class SubmissionService {
         .from('submissions')
         .update(updates)
         .eq('id', id)
-        .select(`
-          *,
-          submitter:profiles!submitted_by(
-            id,
-            full_name,
-            email,
-            unit_kerja
-          ),
-          reviewer:profiles!reviewed_by(
-            id,
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .single();
+
+      // Manually fetch related profiles
+      if (result.data) {
+        const userIds = [result.data.submitted_by, result.data.reviewed_by].filter(Boolean);
+
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, unit_kerja')
+            .in('id', userIds);
+
+          if (profiles) {
+            const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+            result.data.submitter = profileMap[result.data.submitted_by] || null;
+            result.data.reviewer = profileMap[result.data.reviewed_by] || null;
+          }
+        }
+      }
 
       apiLogger.info('Submission updated', {
         submissionId: id,
