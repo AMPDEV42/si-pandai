@@ -222,6 +222,11 @@ const RequirementUpload = ({
                     </Badge>
                   )}
                 </div>
+
+                {/* File Format Info */}
+                <div className="mt-2 text-xs text-gray-500">
+                  <span>Format yang diterima: PDF, DOC, DOCX, JPG, PNG (Maks. 5MB)</span>
+                </div>
               </div>
             </div>
 
