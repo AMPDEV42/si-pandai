@@ -26,13 +26,16 @@ import { formatFileSize } from '../../lib/utils';
 import { apiLogger } from '../../lib/logger';
 import { googleDriveService } from '../../services/googleDriveService';
 
-const RequirementUpload = ({ 
-  requirement, 
-  uploadedFile, 
-  onFileUpload, 
+const RequirementUpload = ({
+  requirement,
+  uploadedFile,
+  onFileUpload,
   onFileRemove,
   isUploading = false,
-  className = '' 
+  submissionType = null,
+  employeeName = null,
+  useGoogleDrive = false,
+  className = ''
 }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
