@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { useAuth } from '../contexts/SupabaseAuthContext';
 import { getSubmissionsByCategory } from '../data/submissionTypes';
+import { initializeSampleData } from '../lib/dataInitializer';
 import { 
   Plus, 
   FileText, 
@@ -35,21 +36,20 @@ const AdminUnitDashboard = () => {
   useEffect(() => {
     if (!user) return;
 
-    const savedSubmissions = localStorage.getItem('sipandai_submissions');
-    if (savedSubmissions) {
-      const allSubmissions = JSON.parse(savedSubmissions);
-      const userSubmissions = allSubmissions.filter(sub => sub.submittedBy === user.id);
-      setSubmissions(userSubmissions);
-      
-      const newStats = {
-        total: userSubmissions.length,
-        pending: userSubmissions.filter(sub => sub.status === 'pending').length,
-        approved: userSubmissions.filter(sub => sub.status === 'approved').length,
-        rejected: userSubmissions.filter(sub => sub.status === 'rejected').length,
-        revision: userSubmissions.filter(sub => sub.status === 'revision').length
-      };
-      setStats(newStats);
-    }
+    // Initialize sample data if none exists
+    const allSubmissions = initializeSampleData();
+    // For demo purposes, show all submissions for admin unit dashboard
+    const userSubmissions = user?.role === 'admin-unit' ? allSubmissions.slice(0, 3) : allSubmissions.filter(sub => sub.submittedBy === user.id);
+    setSubmissions(userSubmissions);
+
+    const newStats = {
+      total: userSubmissions.length,
+      pending: userSubmissions.filter(sub => sub.status === 'pending').length,
+      approved: userSubmissions.filter(sub => sub.status === 'approved').length,
+      rejected: userSubmissions.filter(sub => sub.status === 'rejected').length,
+      revision: userSubmissions.filter(sub => sub.status === 'revision').length
+    };
+    setStats(newStats);
   }, [user]);
 
   const handleNewSubmission = (typeId) => {
