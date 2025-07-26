@@ -2,14 +2,16 @@ import { supabase, withErrorHandling } from '../lib/customSupabaseClient';
 import { sendNewSubmissionEmail } from './emailService';
 import { apiLogger } from '../lib/logger';
 
-export const sendNotification = async ({ userId, title, message, type = 'info', link = null, email = null, submission = null }) => {
+export const sendNotification = async ({ userId, title, message, type = 'info', link = null, email = null, submission = null, metadata = null }) => {
   return withErrorHandling(async () => {
     // Simpan notifikasi ke database
     const notification = {
       user_id: userId,
       title,
       message,
+      type,
       link,
+      metadata: metadata ? JSON.stringify(metadata) : null,
       is_read: false,
     };
 
@@ -30,7 +32,7 @@ export const sendNotification = async ({ userId, title, message, type = 'info', 
     });
 
     // Jika email disediakan dan submission ada, kirim email notifikasi
-    if (email && submission && type === 'info' && title.includes('Pengajuan Baru')) {
+    if (email && submission && type === 'submission' && title.includes('Pengajuan Baru')) {
       try {
         await sendNewSubmissionEmail(email, submission, submission.submitterName || 'Pengguna');
         apiLogger.info('Email notification sent', { userId, email });
@@ -41,6 +43,127 @@ export const sendNotification = async ({ userId, title, message, type = 'info', 
 
     return result.data;
   }, 'sendNotification');
+};
+
+// Specific notification functions for submissions
+export const notifyNewSubmission = async (submission, submitterId, adminIds = []) => {
+  const promises = [];
+
+  // Notify submitter
+  promises.push(
+    sendNotification({
+      userId: submitterId,
+      title: 'Pengajuan Berhasil Dibuat',
+      message: `Pengajuan "${submission.title}" berhasil dibuat dan sedang menunggu verifikasi.`,
+      type: 'submission',
+      link: `/pengajuan/${submission.id}`,
+      metadata: {
+        submissionId: submission.id,
+        submissionType: submission.submission_type,
+        status: submission.status
+      }
+    })
+  );
+
+  // Notify admins
+  adminIds.forEach(adminId => {
+    promises.push(
+      sendNotification({
+        userId: adminId,
+        title: 'Pengajuan Baru Menunggu Verifikasi',
+        message: `Pengajuan baru "${submission.title}" telah dibuat dan membutuhkan verifikasi Anda.`,
+        type: 'submission',
+        link: `/pengajuan/${submission.id}`,
+        metadata: {
+          submissionId: submission.id,
+          submissionType: submission.submission_type,
+          status: submission.status,
+          submitterId: submitterId
+        }
+      })
+    );
+  });
+
+  return Promise.all(promises);
+};
+
+export const notifySubmissionStatusUpdate = async (submission, updatedBy, previousStatus) => {
+  const statusMessages = {
+    approved: 'disetujui',
+    rejected: 'ditolak',
+    revision: 'dikembalikan untuk revisi'
+  };
+
+  const statusMessage = statusMessages[submission.status] || 'diperbarui';
+
+  return sendNotification({
+    userId: submission.user_id,
+    title: `Pengajuan ${statusMessage.charAt(0).toUpperCase() + statusMessage.slice(1)}`,
+    message: `Pengajuan "${submission.title}" telah ${statusMessage}.`,
+    type: 'submission_update',
+    link: `/pengajuan/${submission.id}`,
+    metadata: {
+      submissionId: submission.id,
+      previousStatus,
+      newStatus: submission.status,
+      updatedBy,
+      hasNotes: !!submission.review_notes
+    }
+  });
+};
+
+export const notifyDataUpdate = async (userId, dataType, itemName, action = 'updated') => {
+  const actionText = {
+    created: 'dibuat',
+    updated: 'diperbarui',
+    deleted: 'dihapus'
+  };
+
+  return sendNotification({
+    userId,
+    title: `Data ${dataType} ${actionText[action] || 'diperbarui'}`,
+    message: `Data ${dataType} "${itemName}" telah ${actionText[action] || 'diperbarui'}.`,
+    type: 'data_update',
+    metadata: {
+      dataType,
+      itemName,
+      action
+    }
+  });
+};
+
+export const notifyVerificationResult = async (submission, result, reviewNotes) => {
+  const resultMessages = {
+    approved: {
+      title: 'Pengajuan Disetujui',
+      message: `Selamat! Pengajuan "${submission.title}" telah disetujui.`
+    },
+    rejected: {
+      title: 'Pengajuan Ditolak',
+      message: `Pengajuan "${submission.title}" ditolak. Silakan periksa catatan reviewer.`
+    },
+    revision: {
+      title: 'Pengajuan Perlu Revisi',
+      message: `Pengajuan "${submission.title}" perlu diperbaiki. Silakan periksa catatan dan lakukan revisi.`
+    }
+  };
+
+  const notification = resultMessages[result];
+  if (!notification) return;
+
+  return sendNotification({
+    userId: submission.user_id,
+    title: notification.title,
+    message: notification.message,
+    type: 'verification_result',
+    link: `/pengajuan/${submission.id}`,
+    metadata: {
+      submissionId: submission.id,
+      result,
+      hasReviewNotes: !!reviewNotes,
+      reviewedAt: new Date().toISOString()
+    }
+  });
 };
 
 export const markNotificationAsRead = async (notificationId) => {
