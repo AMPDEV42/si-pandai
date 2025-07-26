@@ -381,10 +381,11 @@ class SubmissionService {
   /**
    * Request revision for submission
    */
-  async requestRevision(id, userId, notes = '') {
+  async requestRevision(id, userId, notes = '', previousStatus = null) {
     return this.updateSubmission(id, {
       status: SUBMISSION_STATUS.REVISION,
-      review_notes: notes
+      review_notes: notes,
+      previousStatus
     }, userId);
   }
 
