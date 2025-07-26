@@ -22,12 +22,15 @@ export const AuthProvider = ({ children }) => {
 
     if (session?.user) {
       try {
-        // Fetch the full user profile to get the role
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        // Fetch the full user profile to get the role with network retry
+        const { data: profile, error } = await retryWithBackoff(
+          () => supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single(),
+          { maxRetries: 2, initialDelay: 1000 }
+        );
 
         if (error) {
           const errorType = categorizeError(error);
