@@ -153,7 +153,7 @@ const AdminMasterDashboard = () => {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
         >
           {isLoading ? (
-            <DashboardStatsSkeleton />
+            <StatCardSkeleton count={5} />
           ) : (
             <>
               <Card className="glass-effect border-white/20 card-hover">
