@@ -13,6 +13,7 @@ import NotesCard from '@/components/submission/NotesCard';
 import VerificationActions from '@/components/submission/VerificationActions';
 import HistoryTimeline from '@/components/submission/HistoryTimeline';
 import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { submissionService } from '../services/submissionService';
 
 const SubmissionDetail = () => {
   const { id } = useParams();
