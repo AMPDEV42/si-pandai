@@ -244,6 +244,29 @@ class SubmissionService {
         updates: Object.keys(updateData)
       });
 
+      // Send notifications for status changes
+      if (result.data && updateData.status) {
+        try {
+          // Get the previous status if available
+          const previousStatus = updateData.previousStatus;
+
+          // Send status update notification
+          await notifySubmissionStatusUpdate(result.data, userId, previousStatus);
+
+          // Send verification result notification
+          await notifyVerificationResult(result.data, updateData.status, updateData.review_notes);
+
+          apiLogger.info('Status change notifications sent', {
+            submissionId: id,
+            newStatus: updateData.status,
+            previousStatus
+          });
+        } catch (notificationError) {
+          apiLogger.error('Error sending status change notifications', notificationError);
+          // Don't fail the update if notifications fail
+        }
+      }
+
       return result;
     }, `updateSubmission: ${id}`);
   }
