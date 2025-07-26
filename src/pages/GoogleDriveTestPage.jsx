@@ -26,6 +26,7 @@ import { apiLogger } from '../lib/logger';
 import { config } from '../config/environment';
 import { debugGoogleDrive } from '../debug/googleDriveDebug';
 import DomainInstructions from '../components/debug/DomainInstructions';
+import { testSupabaseConnection } from '../utils/supabaseConnectionTest';
 
 const GoogleDriveTestPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
