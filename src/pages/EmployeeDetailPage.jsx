@@ -404,7 +404,9 @@ const EmployeeDetailPage = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {submissions.length === 0 ? (
+              {isLoading ? (
+                <SubmissionCardSkeleton count={3} />
+              ) : submissions.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-white mb-2">
