@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DashboardStatsSkeleton, SubmissionListSkeleton, LoadingOverlay } from '../components/common/LoadingSkeletons';
+import { StatCardSkeleton, SubmissionCardSkeleton } from '../components/common/EnhancedSkeletons';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
