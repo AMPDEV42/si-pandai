@@ -124,6 +124,9 @@ const EmployeeEditPage = () => {
 
       apiLogger.info('Employee updated successfully', { employeeId });
 
+      // Set flag to trigger refresh on detail page
+      localStorage.setItem('employee_updated', 'true');
+
       // Navigate back to detail page
       navigate(`/pegawai/${employeeId}`);
 
