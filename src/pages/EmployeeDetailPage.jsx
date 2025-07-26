@@ -30,6 +30,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { TabSkeletonWrapper, SubmissionCardSkeleton } from '../components/common/EnhancedSkeletons';
+import { useTabLoading } from '../hooks/useProgressiveLoading';
 import { useAuth } from '../contexts/SupabaseAuthContext';
 import { useToast } from '../components/ui/use-toast';
 import { employeeService } from '../services/employeeService';
