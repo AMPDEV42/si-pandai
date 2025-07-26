@@ -171,19 +171,7 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      // Kirim notifikasi login berhasil (with error handling)
-      if (data?.user) {
-        try {
-          await sendNotification({
-            userId: data.user.id,
-            title: 'Login Berhasil',
-            message: 'Anda berhasil masuk ke sistem SIPANDAI'
-          });
-        } catch (notifError) {
-          authLogger.error('Error sending login notification', notifError);
-          // Don't block login flow if notification fails
-        }
-      }
+      // Note: Login notifications removed as they are not necessary for the application core functionality
 
       toast({
         title: 'Login Berhasil',
