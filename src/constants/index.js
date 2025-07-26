@@ -52,7 +52,11 @@ export const NOTIFICATION_TYPES = {
   INFO: 'info',
   SUCCESS: 'success',
   WARNING: 'warning',
-  ERROR: 'error'
+  ERROR: 'error',
+  SUBMISSION: 'submission',
+  SUBMISSION_UPDATE: 'submission_update',
+  VERIFICATION_RESULT: 'verification_result',
+  DATA_UPDATE: 'data_update'
 };
 
 // File Upload Constants
