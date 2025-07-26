@@ -57,6 +57,15 @@ export const supabase = createClient(
   supabaseConfig
 );
 
+// Test client immediately after creation in development
+if (config.isDevelopment) {
+  console.log('🔧 Supabase client created with:', {
+    url: config.supabase.url.substring(0, 30) + '...',
+    hasAnonKey: !!config.supabase.anonKey,
+    client: !!supabase
+  });
+}
+
 // Retry configuration
 const RETRY_CONFIG = {
   maxRetries: 2,
