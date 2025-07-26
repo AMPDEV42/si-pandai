@@ -253,6 +253,43 @@ const ImprovedSubmissionPage = () => {
     }
   };
 
+  const handleTestGoogleDriveUpload = async () => {
+    setIsTestingUpload(true);
+
+    try {
+      const result = await testGoogleDriveUpload();
+
+      if (result.success) {
+        toast({
+          title: 'Test upload berhasil!',
+          description: `File test berhasil diupload ke Google Drive: ${result.fileName}`,
+          action: result.viewLink ? (
+            <Button
+              size="sm"
+              onClick={() => window.open(result.viewLink, '_blank')}
+            >
+              Lihat File
+            </Button>
+          ) : null
+        });
+      } else {
+        toast({
+          title: 'Test upload gagal',
+          description: result.error,
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Test upload error',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsTestingUpload(false);
+    }
+  };
+
   if (!submissionType) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
