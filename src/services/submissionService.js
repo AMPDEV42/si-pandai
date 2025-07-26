@@ -174,6 +174,30 @@ class SubmissionService {
         title: submission.title
       });
 
+      // Send notifications
+      if (result.data) {
+        try {
+          // Get admin users to notify
+          const { data: adminUsers } = await supabase
+            .from('profiles')
+            .select('id')
+            .in('role', ['admin-master', 'admin-unit']);
+
+          const adminIds = adminUsers ? adminUsers.map(admin => admin.id) : [];
+
+          // Send notifications about new submission
+          await notifyNewSubmission(result.data, userId, adminIds);
+
+          apiLogger.info('Submission notifications sent', {
+            submissionId: result.data.id,
+            adminCount: adminIds.length
+          });
+        } catch (notificationError) {
+          apiLogger.error('Error sending submission notifications', notificationError);
+          // Don't fail the submission creation if notifications fail
+        }
+      }
+
       return result;
     }, 'createSubmission');
   }
