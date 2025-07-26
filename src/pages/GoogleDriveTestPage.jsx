@@ -315,6 +315,10 @@ const GoogleDriveTestPage = () => {
 
         {activeTab === 'setup' ? (
           <DomainInstructions />
+        ) : activeTab === 'upload' ? (
+          <div className="max-w-2xl mx-auto">
+            <GoogleDriveTestRunner />
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Configuration Panel */}
