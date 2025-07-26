@@ -181,6 +181,25 @@ const GoogleDriveTestPage = () => {
     }
   };
 
+  const runSupabaseConnectionTest = async () => {
+    addToLog('Testing Supabase connection...', 'info');
+
+    try {
+      const result = await testSupabaseConnection();
+
+      if (result.configured && result.networkReachable && result.authWorking && result.healthCheck) {
+        addToLog('✓ Supabase connection test passed', 'success');
+        return { success: true, message: 'Supabase connection OK' };
+      } else {
+        addToLog(`✗ Supabase connection issues: ${result.error}`, 'error');
+        return { success: false, message: result.error || 'Connection failed' };
+      }
+    } catch (error) {
+      addToLog(`✗ Supabase connection test failed: ${error.message}`, 'error');
+      return { success: false, message: error.message };
+    }
+  };
+
   const runDebugTest = async () => {
     addToLog('Running detailed Google Drive debug...', 'info');
 
