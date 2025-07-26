@@ -10,6 +10,10 @@ const ICON_MAP = {
   success: <CheckCircle className="w-4 h-4 text-green-500" />,
   warning: <AlertTriangle className="w-4 h-4 text-yellow-500" />,
   error: <AlertCircle className="w-4 h-4 text-red-500" />,
+  submission: <FileText className="w-4 h-4 text-blue-500" />,
+  submission_update: <Clock className="w-4 h-4 text-amber-500" />,
+  verification_result: <UserCheck className="w-4 h-4 text-green-500" />,
+  data_update: <Info className="w-4 h-4 text-indigo-500" />,
 };
 
 const formatTimeAgo = (dateString) => {
