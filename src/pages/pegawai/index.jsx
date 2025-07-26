@@ -52,12 +52,22 @@ export default function DataPegawai() {
     fetchPegawai();
   }, []);
 
-  // Refresh data when coming back from edit page (window focus)
+  // Check for update flag and refresh data
   useEffect(() => {
-    const handleFocus = () => {
-      if (!isLoading) {
+    const checkForUpdates = () => {
+      const wasUpdated = localStorage.getItem('employee_updated');
+      if (wasUpdated === 'true' && !isLoading) {
+        localStorage.removeItem('employee_updated');
         fetchPegawai();
       }
+    };
+
+    // Check immediately when component mounts
+    checkForUpdates();
+
+    // Also check on window focus
+    const handleFocus = () => {
+      checkForUpdates();
     };
 
     window.addEventListener('focus', handleFocus);
