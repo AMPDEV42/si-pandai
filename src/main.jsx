@@ -13,6 +13,11 @@ if (import.meta.env.DEV) {
   import('./utils/quickSupabaseTest.js').then(() => {
     console.log('🔧 Supabase test tools loaded');
   });
+
+  // Debug Supabase connection
+  import('./utils/debugSupabaseConnection.js').then(() => {
+    console.log('🔍 Supabase connection debug loaded');
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
