@@ -104,13 +104,16 @@ export default function DataPegawai() {
     try {
       if (isEditMode) {
         await updatePegawai(formData.id, formData);
+        alert('Data pegawai berhasil diperbarui!');
       } else {
         await createPegawai(formData);
+        alert('Data pegawai berhasil ditambahkan!');
       }
-      
+
       setIsDialogOpen(false);
-      fetchPegawai();
       resetForm();
+      // Force refresh the data
+      await fetchPegawai();
     } catch (error) {
       console.error('Error saving pegawai:', error);
       alert('Terjadi kesalahan saat menyimpan data pegawai');
