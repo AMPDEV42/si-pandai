@@ -48,18 +48,26 @@ export const checkNetworkConnectivity = async () => {
 };
 
 // Supabase specific connectivity check
-export const checkSupabaseConnectivity = async (supabaseUrl) => {
+export const checkSupabaseConnectivity = async (supabaseUrl, apiKey = null) => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const headers = {
+      'Cache-Control': 'no-cache'
+    };
+
+    // Include API key if provided
+    if (apiKey) {
+      headers['apikey'] = apiKey;
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
 
     // Try to reach Supabase health endpoint
     const response = await fetch(`${supabaseUrl}/rest/v1/`, {
       method: 'HEAD',
       signal: controller.signal,
-      headers: {
-        'Cache-Control': 'no-cache'
-      }
+      headers
     });
 
     clearTimeout(timeoutId);
@@ -67,14 +75,16 @@ export const checkSupabaseConnectivity = async (supabaseUrl) => {
     return {
       isReachable: response.status < 500, // Accept even 401/403 as reachable
       status: response.status,
-      ok: response.ok
+      ok: response.ok,
+      hasApiKey: !!apiKey
     };
   } catch (error) {
     apiLogger.error('Supabase connectivity check failed', error);
     return {
       isReachable: false,
       error: error.message,
-      name: error.name
+      name: error.name,
+      hasApiKey: !!apiKey
     };
   }
 };
