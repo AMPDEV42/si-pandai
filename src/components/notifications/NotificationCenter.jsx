@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Bell, X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { Bell, X, CheckCircle, AlertCircle, Info, AlertTriangle, FileText, UserCheck, Clock, XCircle } from 'lucide-react';
 import { supabase } from '../../lib/customSupabaseClient';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationService';
