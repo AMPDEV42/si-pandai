@@ -18,6 +18,11 @@ if (import.meta.env.DEV) {
   import('./utils/debugSupabaseConnection.js').then(() => {
     console.log('🔍 Supabase connection debug loaded');
   });
+
+  // Enhanced Supabase fetch test
+  import('./lib/supabaseFetchWrapper.js').then(() => {
+    console.log('🔧 Enhanced Supabase fetch test loaded');
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
