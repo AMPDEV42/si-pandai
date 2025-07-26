@@ -71,50 +71,77 @@ const SubmissionDetail = () => {
 
     setLoading(true);
 
-    setTimeout(() => {
-      const savedSubmissions = localStorage.getItem('sipandai_submissions');
-      if (savedSubmissions) {
-        const allSubmissions = JSON.parse(savedSubmissions);
-        const updatedSubmissions = allSubmissions.map(sub => {
-          if (sub.id === submission.id) {
-            return {
-              ...sub,
-              status: newStatus,
-              notes: actionNotes || sub.notes,
-              reviewedBy: user.id,
-              reviewedAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            };
-          }
-          return sub;
-        });
+    try {
+      const previousStatus = submission.status;
+      let result;
 
-        localStorage.setItem('sipandai_submissions', JSON.stringify(updatedSubmissions));
-        
-        setSubmission(prev => ({
-          ...prev,
-          status: newStatus,
-          notes: actionNotes || prev.notes,
-          reviewedBy: user.id,
-          reviewedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }));
-
-        const statusText = {
-          approved: 'disetujui',
-          rejected: 'ditolak',
-          revision: 'dikembalikan untuk revisi'
-        };
-
-        toast({
-          title: "Status berhasil diperbarui",
-          description: `Usulan telah ${statusText[newStatus]}`,
-        });
-
-        setActionNotes('');
+      // Use the appropriate service method based on status
+      switch (newStatus) {
+        case 'approved':
+          result = await submissionService.approveSubmission(
+            submission.id,
+            user.id,
+            actionNotes,
+            previousStatus
+          );
+          break;
+        case 'rejected':
+          result = await submissionService.rejectSubmission(
+            submission.id,
+            user.id,
+            actionNotes,
+            previousStatus
+          );
+          break;
+        case 'revision':
+          result = await submissionService.requestRevision(
+            submission.id,
+            user.id,
+            actionNotes,
+            previousStatus
+          );
+          break;
+        default:
+          throw new Error('Invalid status');
       }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      // Update local state
+      setSubmission(prev => ({
+        ...prev,
+        status: newStatus,
+        review_notes: actionNotes,
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+      const statusText = {
+        approved: 'disetujui',
+        rejected: 'ditolak',
+        revision: 'dikembalikan untuk revisi'
+      };
+
+      toast({
+        title: "Status berhasil diperbarui",
+        description: `Usulan telah ${statusText[newStatus]}. Notifikasi telah dikirim ke pemohon.`,
+      });
+
+      setActionNotes('');
+
+    } catch (error) {
+      console.error('Error updating submission status:', error);
+      toast({
+        title: "Gagal memperbarui status",
+        description: "Terjadi kesalahan saat memperbarui status usulan. Silakan coba lagi.",
+        variant: "destructive"
+      });
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const getStatusColor = (status) => {
