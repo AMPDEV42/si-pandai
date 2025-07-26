@@ -291,6 +291,16 @@ const GoogleDriveTestPage = () => {
               API Testing
             </button>
             <button
+              onClick={() => setActiveTab('upload')}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                activeTab === 'upload'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              Upload Test
+            </button>
+            <button
               onClick={() => setActiveTab('setup')}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                 activeTab === 'setup'
