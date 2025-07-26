@@ -116,9 +116,26 @@ export const withErrorHandling = async (operation, context = '') => {
       const result = await operation();
       const duration = Date.now() - startTime;
 
-      if (result.error) {
+      // Check for Supabase error in result
+      if (result?.error) {
         const error = new Error(result.error.message || 'Database operation failed');
         error.supabaseError = result.error;
+        error.code = result.error.code;
+
+        // Log specific API key error
+        if (result.error.message?.includes('No API key')) {
+          apiLogger.error(`Supabase API key missing: ${context}`, {
+            error: result.error,
+            hint: result.error.hint
+          });
+        }
+
+        // Don't retry API key errors or authentication errors
+        if (result.error.message?.includes('No API key') ||
+            result.error.message?.includes('Invalid API key') ||
+            result.error.code === 'invalid_api_key') {
+          throw error;
+        }
 
         // Check if this is a retryable Supabase error
         if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
@@ -143,18 +160,27 @@ export const withErrorHandling = async (operation, context = '') => {
       if (attempt > 0) {
         apiLogger.info(`Supabase operation succeeded after ${attempt + 1} attempts: ${context}`, {
           duration: `${duration}ms`,
-          count: result.data?.length || (result.data ? 1 : 0)
+          count: result?.data?.length || (result?.data ? 1 : 0)
         });
       } else {
         apiLogger.debug(`Supabase operation completed: ${context}`, {
           duration: `${duration}ms`,
-          count: result.data?.length || (result.data ? 1 : 0)
+          count: result?.data?.length || (result?.data ? 1 : 0)
         });
       }
 
       return result;
     } catch (error) {
       lastError = error;
+
+      // Don't retry if it's a response body already read error
+      if (error.message?.includes('body stream already read')) {
+        apiLogger.error(`Response body already consumed: ${context}`, {
+          error: error.message,
+          stack: error.stack
+        });
+        break;
+      }
 
       // Check if this is a retryable network error
       if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
@@ -180,8 +206,8 @@ export const withErrorHandling = async (operation, context = '') => {
 
   // All retries exhausted
   apiLogger.error(`Supabase operation error after ${RETRY_CONFIG.maxRetries + 1} attempts: ${context}`, {
-    error: lastError.message,
-    stack: lastError.stack,
+    error: lastError?.message,
+    stack: lastError?.stack,
     isNetworkError: isRetryableError(lastError)
   });
 
