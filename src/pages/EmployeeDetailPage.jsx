@@ -51,45 +51,58 @@ const EmployeeDetailPage = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const { isTabLoading, setTabLoading } = useTabLoading();
 
+  // Function to load employee data
+  const loadEmployeeData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const result = await employeeService.getEmployeeById(employeeId);
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      setEmployee(result.data.employee);
+      setSubmissions(result.data.submissions);
+
+      apiLogger.info('Employee detail loaded', {
+        employeeId,
+        submissionsCount: result.data.submissions.length
+      });
+
+    } catch (err) {
+      apiLogger.error('Failed to load employee detail', err);
+      setError('Gagal memuat data pegawai. Silakan coba lagi.');
+
+      toast({
+        title: 'Error',
+        description: 'Gagal memuat data pegawai',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Load employee data and submission history
   useEffect(() => {
-    const loadEmployeeData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const result = await employeeService.getEmployeeById(employeeId);
-        
-        if (result.error) {
-          throw result.error;
-        }
-
-        setEmployee(result.data.employee);
-        setSubmissions(result.data.submissions);
-
-        apiLogger.info('Employee detail loaded', {
-          employeeId,
-          submissionsCount: result.data.submissions.length
-        });
-
-      } catch (err) {
-        apiLogger.error('Failed to load employee detail', err);
-        setError('Gagal memuat data pegawai. Silakan coba lagi.');
-        
-        toast({
-          title: 'Error',
-          description: 'Gagal memuat data pegawai',
-          variant: 'destructive'
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     if (employeeId) {
       loadEmployeeData();
     }
   }, [employeeId, toast]);
+
+  // Refresh data when coming back from edit page (window focus)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (employeeId && !isLoading) {
+        loadEmployeeData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [employeeId, isLoading]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
