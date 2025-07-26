@@ -117,6 +117,19 @@ const EmployeeEditPage = () => {
       // Update employee data using pegawaiService which handles the correct format
       await updatePegawai(employeeId, formData);
 
+      // Send notification about data update
+      try {
+        await notifyDataUpdate(
+          employeeId,
+          'Pegawai',
+          formData.nama || employee.full_name || 'Unknown',
+          'updated'
+        );
+      } catch (notificationError) {
+        console.error('Error sending data update notification:', notificationError);
+        // Don't fail the update if notification fails
+      }
+
       toast({
         title: 'Berhasil',
         description: 'Data pegawai berhasil diperbarui',
