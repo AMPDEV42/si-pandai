@@ -359,20 +359,22 @@ class SubmissionService {
   /**
    * Approve submission
    */
-  async approveSubmission(id, userId, notes = '') {
+  async approveSubmission(id, userId, notes = '', previousStatus = null) {
     return this.updateSubmission(id, {
       status: SUBMISSION_STATUS.APPROVED,
-      review_notes: notes
+      review_notes: notes,
+      previousStatus
     }, userId);
   }
 
   /**
    * Reject submission
    */
-  async rejectSubmission(id, userId, notes = '') {
+  async rejectSubmission(id, userId, notes = '', previousStatus = null) {
     return this.updateSubmission(id, {
       status: SUBMISSION_STATUS.REJECTED,
-      review_notes: notes
+      review_notes: notes,
+      previousStatus
     }, userId);
   }
 
