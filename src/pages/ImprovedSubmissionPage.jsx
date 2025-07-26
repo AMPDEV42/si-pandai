@@ -61,6 +61,7 @@ const ImprovedSubmissionPage = () => {
   const [uploadingFiles, setUploadingFiles] = useState({});
   const [isGoogleDriveAuthenticated, setIsGoogleDriveAuthenticated] = useState(false);
   const [useGoogleDrive, setUseGoogleDrive] = useState(false);
+  const [isTestingUpload, setIsTestingUpload] = useState(false);
 
   // Load submission type
   useEffect(() => {
