@@ -14,6 +14,7 @@ import { Label } from '../components/ui/label';
 import { useToast } from '../components/ui/use-toast';
 import { employeeService } from '../services/employeeService';
 import { updatePegawai } from '../services/pegawaiService';
+import { notifyDataUpdate } from '../services/notificationService';
 import { apiLogger } from '../lib/logger';
 
 const EmployeeEditPage = () => {
