@@ -227,11 +227,13 @@ const AppContent = () => {
           <meta name="author" content={config.app.author} />
           <meta name="version" content={config.app.version} />
         </Helmet>
-        <div className="min-h-screen">
-          <Toaster />
-          <RouterProvider router={router} />
-          <SupabaseMonitor />
-        </div>
+        <NetworkErrorHandler>
+          <div className="min-h-screen">
+            <Toaster />
+            <RouterProvider router={router} />
+            <SupabaseMonitor />
+          </div>
+        </NetworkErrorHandler>
       </HelmetProvider>
     </ErrorBoundary>
   );
