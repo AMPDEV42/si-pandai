@@ -30,6 +30,7 @@ import SubmissionHistory from './pages/SubmissionHistory';
 import NewSubmissionPage from './pages/NewSubmissionPage';
 import ImprovedSubmissionPage from './pages/ImprovedSubmissionPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
+import EmployeeEditPage from './pages/EmployeeEditPage';
 import DataPegawai from './pages/pegawai/index.jsx';
 import GoogleDriveTestPage from './pages/GoogleDriveTestPage';
 import SupabaseMonitor from './components/debug/SupabaseMonitor';
