@@ -37,11 +37,21 @@ const validateEnvironment = () => {
 // Validate environment on module load
 validateEnvironment();
 
+// Debug environment variables in development
+if (import.meta.env.DEV) {
+  console.log('🔧 Environment Variables Debug:', {
+    VITE_SUPABASE_URL: !!import.meta.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+    urlValue: import.meta.env.VITE_SUPABASE_URL?.substring(0, 30) + '...',
+    anonKeyLength: import.meta.env.VITE_SUPABASE_ANON_KEY?.length
+  });
+}
+
 export const config = {
   // Environment
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,
-  
+
   // Application
   app: {
     name: 'SIPANDAI',
@@ -49,11 +59,11 @@ export const config = {
     version: '1.0.0',
     author: 'Alhadi Media Design'
   },
-  
+
   // Database
   supabase: {
-    url: import.meta.env.VITE_SUPABASE_URL,
-    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    url: import.meta.env.VITE_SUPABASE_URL || '',
+    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   },
   
   // Email Service
