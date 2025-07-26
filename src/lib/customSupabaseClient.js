@@ -67,9 +67,9 @@ export const supabase = createClient(
 
 // Retry configuration
 const RETRY_CONFIG = {
-  maxRetries: 3,
-  initialDelay: 1000,
-  maxDelay: 5000,
+  maxRetries: 2,
+  initialDelay: 500,
+  maxDelay: 3000,
   backoffFactor: 2
 };
 
