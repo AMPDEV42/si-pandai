@@ -429,6 +429,7 @@ const GoogleDriveTestPage = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
+                  { key: 'supabaseConnection', label: 'Supabase Connection', icon: <CheckCircle className="w-4 h-4" /> },
                   { key: 'debug', label: 'Debug Analysis', icon: <AlertCircle className="w-4 h-4" /> },
                   { key: 'configuration', label: 'Configuration', icon: <TestTube className="w-4 h-4" /> },
                   { key: 'initialization', label: 'API Initialization', icon: <RefreshCw className="w-4 h-4" /> },
