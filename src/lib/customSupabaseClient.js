@@ -33,40 +33,6 @@ const supabaseConfig = {
   global: {
     headers: {
       'X-Client-Info': `${config.app.name}@${config.app.version}`
-    },
-    fetch: (url, options = {}) => {
-      // Create new AbortController if timeout needed and none provided
-      let signal = options.signal;
-      let timeoutId;
-
-      if (!signal) {
-        const controller = new AbortController();
-        signal = controller.signal;
-        timeoutId = setTimeout(() => controller.abort(), 15000);
-      }
-
-      return fetch(url, {
-        ...options,
-        signal,
-        headers: {
-          // Preserve all existing headers (including apikey)
-          ...options.headers,
-          'X-Client-Info': `${config.app.name}@${config.app.version}`
-        }
-      }).then(response => {
-        if (timeoutId) clearTimeout(timeoutId);
-        return response;
-      }).catch(error => {
-        if (timeoutId) clearTimeout(timeoutId);
-        // Enhanced error logging for debugging
-        apiLogger.error('Supabase fetch error', {
-          url,
-          error: error.message,
-          name: error.name,
-          stack: error.stack
-        });
-        throw error;
-      });
     }
   }
 };
