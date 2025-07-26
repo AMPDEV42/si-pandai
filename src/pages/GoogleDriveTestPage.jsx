@@ -221,6 +221,7 @@ const GoogleDriveTestPage = () => {
     addToLog('Starting Google Drive integration tests...', 'info');
 
     const tests = [
+      { name: 'supabaseConnection', test: runSupabaseConnectionTest },
       { name: 'debug', test: runDebugTest },
       { name: 'configuration', test: runConfigurationTest },
       { name: 'initialization', test: runInitializationTest },
