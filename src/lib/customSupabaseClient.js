@@ -58,16 +58,27 @@ const isRetryableError = (error) => {
     'Failed to fetch',
     'Network request failed',
     'TypeError: fetch failed',
+    'TypeError: Failed to fetch',
     'Connection reset',
     'ECONNRESET',
     'ENOTFOUND',
-    'ETIMEDOUT'
+    'ETIMEDOUT',
+    'ENETUNREACH',
+    'ECONNREFUSED',
+    'Load failed',
+    'fetch failed',
+    'NetworkError',
+    'AbortError',
+    'TimeoutError'
   ];
 
   const errorMessage = error?.message || error?.toString() || '';
+  const errorName = error?.name || '';
+
   return retryableErrors.some(retryableError =>
-    errorMessage.toLowerCase().includes(retryableError.toLowerCase())
-  );
+    errorMessage.toLowerCase().includes(retryableError.toLowerCase()) ||
+    errorName.toLowerCase().includes(retryableError.toLowerCase())
+  ) || error instanceof TypeError;
 };
 
 // Sleep function for delays
