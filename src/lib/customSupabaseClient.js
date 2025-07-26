@@ -38,7 +38,7 @@ const supabaseConfig = {
       return fetch(url, {
         ...options,
         // Add timeout for network requests
-        signal: AbortSignal.timeout(30000), // 30 seconds timeout
+        signal: AbortSignal.timeout(15000), // 15 seconds timeout
         headers: {
           ...options.headers,
           'Cache-Control': 'no-cache',
