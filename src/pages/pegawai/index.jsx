@@ -52,6 +52,18 @@ export default function DataPegawai() {
     fetchPegawai();
   }, []);
 
+  // Refresh data when coming back from edit page (window focus)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (!isLoading) {
+        fetchPegawai();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isLoading]);
+
   const fetchPegawai = async () => {
     try {
       const data = await getPegawai();
