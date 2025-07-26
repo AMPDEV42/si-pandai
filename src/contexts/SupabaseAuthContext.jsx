@@ -150,9 +150,18 @@ export const AuthProvider = ({ children }) => {
   const signIn = useCallback(async (email, password, onSuccess) => {
     setLoading(true);
     setError(null);
+
     try {
+      // Validate inputs
+      if (!email?.trim()) {
+        throw new Error('Email tidak boleh kosong');
+      }
+      if (!password?.trim()) {
+        throw new Error('Password tidak boleh kosong');
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
