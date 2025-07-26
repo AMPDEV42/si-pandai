@@ -275,11 +275,13 @@ const AdminMasterDashboard = () => {
                     Muat Ulang
                   </Button>
                 </div>
+              ) : isLoading ? (
+                <SubmissionCardSkeleton count={5} />
               ) : filteredSubmissions.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-400 text-lg">
-                    {isLoading ? 'Memuat data...' : 'Tidak ada usulan ditemukan'}
+                    Tidak ada usulan ditemukan
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
                     {searchTerm || filterStatus !== 'all'
