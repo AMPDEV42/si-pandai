@@ -323,6 +323,16 @@ const GoogleDriveTestPage = () => {
               Upload Test
             </button>
             <button
+              onClick={() => setActiveTab('supabase')}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                activeTab === 'supabase'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              Supabase Test
+            </button>
+            <button
               onClick={() => setActiveTab('setup')}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                 activeTab === 'setup'
