@@ -9,8 +9,21 @@ import { apiLogger } from './logger';
 
 // Validate configuration
 if (!config.supabase.url || !config.supabase.anonKey) {
+  apiLogger.error('Supabase configuration missing', {
+    hasUrl: !!config.supabase.url,
+    hasAnonKey: !!config.supabase.anonKey,
+    urlPrefix: config.supabase.url?.substring(0, 30) + '...',
+    anonKeyPrefix: config.supabase.anonKey?.substring(0, 20) + '...'
+  });
   throw new Error('Supabase configuration is missing. Please check environment variables.');
 }
+
+// Log successful configuration (without exposing sensitive data)
+apiLogger.debug('Supabase client configured', {
+  url: config.supabase.url.substring(0, 30) + '...',
+  hasAnonKey: !!config.supabase.anonKey,
+  anonKeyLength: config.supabase.anonKey.length
+});
 
 // Professional Supabase client configuration
 const supabaseConfig = {
