@@ -20,6 +20,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import GoogleDriveAuth from '../components/common/GoogleDriveAuth';
+import GoogleDriveTestRunner from '../components/test/GoogleDriveTestRunner';
 import { googleDriveService } from '../services/googleDriveService';
 import { apiLogger } from '../lib/logger';
 import { config } from '../config/environment';
