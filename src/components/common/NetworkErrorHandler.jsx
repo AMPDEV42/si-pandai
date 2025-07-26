@@ -41,7 +41,7 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     try {
       const [networkResult, supabaseResult] = await Promise.all([
         checkNetworkConnectivity(),
-        checkSupabaseConnectivity(config.supabase.url)
+        checkSupabaseConnectivity(config.supabase.url, config.supabase.anonKey)
       ]);
 
       const isConnected = networkResult.isOnline && supabaseResult.isReachable;
