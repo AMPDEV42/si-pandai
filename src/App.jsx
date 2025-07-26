@@ -185,6 +185,14 @@ const AppContent = () => {
             ),
           },
           {
+            path: "/pegawai/edit/:employeeId",
+            element: (
+              <ProtectedRoute allowedRoles={['admin-master']}>
+                <EmployeeEditPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
             path: "/test/google-drive",
             element: (
               <ProtectedRoute allowedRoles={['admin-master', 'admin-unit']}>
