@@ -8,6 +8,11 @@ if (import.meta.env.DEV) {
   import('./debug/testGoogleDomain.js').then(() => {
     console.log('🧪 Google Drive debug tools loaded');
   });
+
+  // Quick Supabase test for debugging API key issues
+  import('./utils/quickSupabaseTest.js').then(() => {
+    console.log('🔧 Supabase test tools loaded');
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
