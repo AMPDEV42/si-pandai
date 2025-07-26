@@ -47,7 +47,7 @@ const NotificationItem = React.memo(({ notification, onMarkAsRead, onNotificatio
       >
         <div className="flex items-start">
           <div className="flex-shrink-0 pt-0.5">
-            {ICON_MAP.info}
+            {ICON_MAP[notification.type] || ICON_MAP.info}
           </div>
           <div className="ml-3 flex-1 min-w-0">
             <div className="flex justify-between">
