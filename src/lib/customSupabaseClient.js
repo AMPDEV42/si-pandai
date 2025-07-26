@@ -33,6 +33,27 @@ const supabaseConfig = {
   global: {
     headers: {
       'X-Client-Info': `${config.app.name}@${config.app.version}`
+    },
+    fetch: (url, options = {}) => {
+      return fetch(url, {
+        ...options,
+        // Add timeout for network requests
+        signal: AbortSignal.timeout(30000), // 30 seconds timeout
+        headers: {
+          ...options.headers,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      }).catch(error => {
+        // Enhanced error logging for debugging
+        apiLogger.error('Supabase fetch error', {
+          url,
+          error: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+        throw error;
+      });
     }
   }
 };
