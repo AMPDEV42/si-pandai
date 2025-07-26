@@ -20,6 +20,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import GoogleDriveAuth from '../components/common/GoogleDriveAuth';
+import GoogleDriveTestRunner from '../components/test/GoogleDriveTestRunner';
 import { googleDriveService } from '../services/googleDriveService';
 import { apiLogger } from '../lib/logger';
 import { config } from '../config/environment';
@@ -290,6 +291,16 @@ const GoogleDriveTestPage = () => {
               API Testing
             </button>
             <button
+              onClick={() => setActiveTab('upload')}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                activeTab === 'upload'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              Upload Test
+            </button>
+            <button
               onClick={() => setActiveTab('setup')}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                 activeTab === 'setup'
@@ -304,6 +315,10 @@ const GoogleDriveTestPage = () => {
 
         {activeTab === 'setup' ? (
           <DomainInstructions />
+        ) : activeTab === 'upload' ? (
+          <div className="max-w-2xl mx-auto">
+            <GoogleDriveTestRunner />
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Configuration Panel */}

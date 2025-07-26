@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DashboardStatsSkeleton, SubmissionListSkeleton, LoadingOverlay } from '../components/common/LoadingSkeletons';
+import { StatCardSkeleton, SubmissionCardSkeleton } from '../components/common/EnhancedSkeletons';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -152,7 +153,7 @@ const AdminMasterDashboard = () => {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
         >
           {isLoading ? (
-            <DashboardStatsSkeleton />
+            <StatCardSkeleton count={5} />
           ) : (
             <>
               <Card className="glass-effect border-white/20 card-hover">
@@ -274,11 +275,13 @@ const AdminMasterDashboard = () => {
                     Muat Ulang
                   </Button>
                 </div>
+              ) : isLoading ? (
+                <SubmissionCardSkeleton count={5} />
               ) : filteredSubmissions.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-400 text-lg">
-                    {isLoading ? 'Memuat data...' : 'Tidak ada usulan ditemukan'}
+                    Tidak ada usulan ditemukan
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
                     {searchTerm || filterStatus !== 'all'

@@ -4,6 +4,7 @@ import { useToast } from '../components/ui/use-toast';
 import { sendNotification } from '../services/notificationService';
 import { authLogger } from '../lib/logger';
 import { validateEmail, validatePassword, validateUserRegistration } from '../lib/validation';
+import { getErrorMessage, getRecoverySuggestion, categorizeError, ERROR_TYPES } from '../constants/errorTypes';
 
 const AuthContext = createContext(undefined);
 
@@ -16,33 +17,56 @@ export const AuthProvider = ({ children }) => {
 
   const handleSession = useCallback(async (session) => {
     setSession(session);
-    
+    setError(null); // Clear previous errors
+
     if (session?.user) {
-      // Fetch the full user profile to get the role
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      try {
+        // Fetch the full user profile to get the role
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-      if (error) {
-        authLogger.error('Error fetching user profile', error);
-        // Don't throw error, just log it and continue with basic user data
+        if (error) {
+          const errorType = categorizeError(error);
+          authLogger.error('Error fetching user profile', error);
+
+          // Show user-friendly message for non-critical errors
+          if (errorType !== ERROR_TYPES.NOT_FOUND) {
+            toast({
+              variant: 'destructive',
+              title: 'Peringatan',
+              description: 'Tidak dapat memuat data profil lengkap. Beberapa fitur mungkin terbatas.',
+            });
+          }
+        }
+
+        // Combine user data with profile data
+        setUser({
+          ...session.user,
+          name: profile?.full_name || session.user.user_metadata?.full_name || session.user.email,
+          role: profile?.role || session.user.user_metadata?.role || 'user',
+          unitKerja: profile?.unit_kerja || session.user.user_metadata?.unit_kerja,
+          profileComplete: !!profile // Flag to indicate profile completeness
+        });
+      } catch (error) {
+        authLogger.error('Unexpected error during session handling', error);
+        const errorMessage = getErrorMessage(error);
+        setError(errorMessage);
+
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: errorMessage,
+        });
       }
-
-      // Combine user data with profile data
-      setUser({
-        ...session.user,
-        name: profile?.full_name || session.user.user_metadata?.full_name || session.user.email,
-        role: profile?.role || session.user.user_metadata?.role,
-        unitKerja: profile?.unit_kerja || session.user.user_metadata?.unit_kerja
-      });
     } else {
       setUser(null);
     }
-    
+
     setLoading(false);
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     const getSession = async () => {
@@ -126,9 +150,18 @@ export const AuthProvider = ({ children }) => {
   const signIn = useCallback(async (email, password, onSuccess) => {
     setLoading(true);
     setError(null);
+
     try {
+      // Validate inputs
+      if (!email?.trim()) {
+        throw new Error('Email tidak boleh kosong');
+      }
+      if (!password?.trim()) {
+        throw new Error('Password tidak boleh kosong');
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
@@ -161,11 +194,14 @@ export const AuthProvider = ({ children }) => {
       return data;
     } catch (error) {
       authLogger.error('Login error', error);
-      setError(error.message);
+      const errorMessage = getErrorMessage(error);
+      const suggestion = getRecoverySuggestion(error);
+
+      setError(errorMessage);
       toast({
         variant: 'destructive',
         title: 'Login Gagal',
-        description: error.message || 'Terjadi kesalahan saat login',
+        description: `${errorMessage} ${suggestion}`,
       });
       throw error;
     } finally {

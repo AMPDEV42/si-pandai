@@ -1,28 +1,22 @@
 export const sendEmailNotification = async ({ to, subject, html, text }) => {
   try {
-    const response = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        to,
-        subject,
-        text,
-        html,
-      }),
+    // Mock implementation for Vite compatibility
+    // In production, this should be handled by a proper backend service
+    console.log('📧 Mock Email Service - Email would be sent:', {
+      to,
+      subject,
+      html: html ? 'HTML content included' : 'No HTML',
+      text: text ? 'Text content included' : 'No text'
     });
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to send email');
-    }
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-    console.log('Message sent:', data.messageId);
+    // Always return true for now (mock success)
+    console.log('✅ Mock email sent successfully');
     return true;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error in mock email service:', error);
     return false;
   }
 };
