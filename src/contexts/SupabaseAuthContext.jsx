@@ -4,6 +4,7 @@ import { useToast } from '../components/ui/use-toast';
 import { sendNotification } from '../services/notificationService';
 import { authLogger } from '../lib/logger';
 import { validateEmail, validatePassword, validateUserRegistration } from '../lib/validation';
+import { getErrorMessage, getRecoverySuggestion, categorizeError, ERROR_TYPES } from '../constants/errorTypes';
 
 const AuthContext = createContext(undefined);
 
