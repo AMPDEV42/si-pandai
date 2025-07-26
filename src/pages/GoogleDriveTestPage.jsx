@@ -347,6 +347,10 @@ const GoogleDriveTestPage = () => {
 
         {activeTab === 'setup' ? (
           <DomainInstructions />
+        ) : activeTab === 'supabase' ? (
+          <div className="max-w-2xl mx-auto">
+            <SupabaseFetchTest />
+          </div>
         ) : activeTab === 'upload' ? (
           <div className="max-w-2xl mx-auto">
             <GoogleDriveTestRunner />
