@@ -7,6 +7,11 @@ import { supabase, withErrorHandling, supabaseHelpers } from '../lib/customSupab
 import { apiLogger } from '../lib/logger';
 import { validateSubmissionForm } from '../lib/validation';
 import { SUBMISSION_STATUS } from '../constants';
+import {
+  notifyNewSubmission,
+  notifySubmissionStatusUpdate,
+  notifyVerificationResult
+} from './notificationService';
 
 class SubmissionService {
   /**
