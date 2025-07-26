@@ -194,11 +194,14 @@ export const AuthProvider = ({ children }) => {
       return data;
     } catch (error) {
       authLogger.error('Login error', error);
-      setError(error.message);
+      const errorMessage = getErrorMessage(error);
+      const suggestion = getRecoverySuggestion(error);
+
+      setError(errorMessage);
       toast({
         variant: 'destructive',
         title: 'Login Gagal',
-        description: error.message || 'Terjadi kesalahan saat login',
+        description: `${errorMessage} ${suggestion}`,
       });
       throw error;
     } finally {
