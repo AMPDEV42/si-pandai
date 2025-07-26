@@ -11,6 +11,7 @@ import { Toaster } from './components/ui/toaster';
 import { AuthProvider, useAuth } from './contexts/SupabaseAuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import NetworkErrorHandler from './components/common/NetworkErrorHandler';
 import { PageSkeleton } from './components/common/LoadingSkeletons';
 import config from './config/environment';
 import LoginPage from './pages/LoginPage';
