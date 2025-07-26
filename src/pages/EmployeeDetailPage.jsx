@@ -49,6 +49,7 @@ const EmployeeDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
+  const { isTabLoading, setTabLoading } = useTabLoading();
 
   // Load employee data and submission history
   useEffect(() => {
