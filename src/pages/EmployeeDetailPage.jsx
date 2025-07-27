@@ -30,6 +30,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { TabSkeletonWrapper, SubmissionCardSkeleton } from '../components/common/EnhancedSkeletons';
+import { useTabLoading } from '../hooks/useProgressiveLoading';
 import { useAuth } from '../contexts/SupabaseAuthContext';
 import { useToast } from '../components/ui/use-toast';
 import { employeeService } from '../services/employeeService';
@@ -47,46 +49,70 @@ const EmployeeDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
+  const { isTabLoading, setTabLoading } = useTabLoading();
+
+  // Function to load employee data
+  const loadEmployeeData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const result = await employeeService.getEmployeeById(employeeId);
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      setEmployee(result.data.employee);
+      setSubmissions(result.data.submissions);
+
+      apiLogger.info('Employee detail loaded', {
+        employeeId,
+        submissionsCount: result.data.submissions.length
+      });
+
+    } catch (err) {
+      apiLogger.error('Failed to load employee detail', err);
+      setError('Gagal memuat data pegawai. Silakan coba lagi.');
+
+      toast({
+        title: 'Error',
+        description: 'Gagal memuat data pegawai',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Load employee data and submission history
   useEffect(() => {
-    const loadEmployeeData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const result = await employeeService.getEmployeeById(employeeId);
-        
-        if (result.error) {
-          throw result.error;
-        }
-
-        setEmployee(result.data.employee);
-        setSubmissions(result.data.submissions);
-
-        apiLogger.info('Employee detail loaded', {
-          employeeId,
-          submissionsCount: result.data.submissions.length
-        });
-
-      } catch (err) {
-        apiLogger.error('Failed to load employee detail', err);
-        setError('Gagal memuat data pegawai. Silakan coba lagi.');
-        
-        toast({
-          title: 'Error',
-          description: 'Gagal memuat data pegawai',
-          variant: 'destructive'
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     if (employeeId) {
       loadEmployeeData();
     }
   }, [employeeId, toast]);
+
+  // Check for update flag and refresh data
+  useEffect(() => {
+    const checkForUpdates = () => {
+      const wasUpdated = localStorage.getItem('employee_updated');
+      if (wasUpdated === 'true' && employeeId && !isLoading) {
+        localStorage.removeItem('employee_updated');
+        loadEmployeeData();
+      }
+    };
+
+    // Check immediately when component mounts
+    checkForUpdates();
+
+    // Also check on window focus
+    const handleFocus = () => {
+      checkForUpdates();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [employeeId, isLoading]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -382,87 +408,6 @@ const EmployeeDetailPage = () => {
           </div>
         )}
 
-        {activeTab === 'diklat' && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
-                  Riwayat Diklat
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Unit Kerja</label>
-                    <p className="text-sm">{employee.unitKerja || employee.unit_kerja || 'Tidak ada data'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Jabatan</label>
-                    <p className="text-sm">{employee.jabatan || 'Tidak ada data'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Pangkat/Golongan</label>
-                    <p className="text-sm">{employee.pangkatGolongan || employee.pangkat_golongan || 'Tidak ada data'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Jenis Jabatan</label>
-                    <p className="text-sm">{employee.jenisJabatan || 'Tidak ada data'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">TMT</label>
-                    <p className="text-sm">
-                      {employee.tmt ? new Date(employee.tmt).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      }) : 'Tidak ada data'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Masa Kerja</label>
-                    <p className="text-sm">{employee.tmt ? calculateMasaKerja(employee.tmt) : 'Tidak ada data'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Pendidikan Terakhir</label>
-                    <p className="text-sm">{employee.pendidikanTerakhir || 'Tidak ada data'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Informasi Keluarga */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Informasi Keluarga
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Status Pernikahan</label>
-                    <p className="text-sm">{employee.statusPernikahan || 'Tidak ada data'}</p>
-                  </div>
-                  {employee.namaPasangan && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Nama Pasangan</label>
-                      <p className="text-sm">{employee.namaPasangan}</p>
-                    </div>
-                  )}
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Jumlah Anak</label>
-                    <p className="text-sm">{employee.jumlahAnak || 0} orang</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-          </div>
-        )}
-
         {activeTab === 'submissions' && (
           <Card className="glass-effect border-white/20">
             <CardHeader>
@@ -482,7 +427,9 @@ const EmployeeDetailPage = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {submissions.length === 0 ? (
+              {isLoading ? (
+                <SubmissionCardSkeleton count={3} />
+              ) : submissions.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-white mb-2">

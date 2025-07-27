@@ -8,6 +8,21 @@ if (import.meta.env.DEV) {
   import('./debug/testGoogleDomain.js').then(() => {
     console.log('🧪 Google Drive debug tools loaded');
   });
+
+  // Quick Supabase test for debugging API key issues
+  import('./utils/quickSupabaseTest.js').then(() => {
+    console.log('🔧 Supabase test tools loaded');
+  });
+
+  // Debug Supabase connection
+  import('./utils/debugSupabaseConnection.js').then(() => {
+    console.log('🔍 Supabase connection debug loaded');
+  });
+
+  // Enhanced Supabase fetch test
+  import('./lib/supabaseFetchWrapper.js').then(() => {
+    console.log('🔧 Enhanced Supabase fetch test loaded');
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

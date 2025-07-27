@@ -20,11 +20,14 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import GoogleDriveAuth from '../components/common/GoogleDriveAuth';
+import GoogleDriveTestRunner from '../components/test/GoogleDriveTestRunner';
+import SupabaseFetchTest from '../components/test/SupabaseFetchTest';
 import { googleDriveService } from '../services/googleDriveService';
 import { apiLogger } from '../lib/logger';
 import { config } from '../config/environment';
 import { debugGoogleDrive } from '../debug/googleDriveDebug';
 import DomainInstructions from '../components/debug/DomainInstructions';
+import { testSupabaseConnection } from '../utils/supabaseConnectionTest';
 
 const GoogleDriveTestPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -179,6 +182,25 @@ const GoogleDriveTestPage = () => {
     }
   };
 
+  const runSupabaseConnectionTest = async () => {
+    addToLog('Testing Supabase connection...', 'info');
+
+    try {
+      const result = await testSupabaseConnection();
+
+      if (result.configured && result.networkReachable && result.authWorking && result.healthCheck) {
+        addToLog('✓ Supabase connection test passed', 'success');
+        return { success: true, message: 'Supabase connection OK' };
+      } else {
+        addToLog(`✗ Supabase connection issues: ${result.error}`, 'error');
+        return { success: false, message: result.error || 'Connection failed' };
+      }
+    } catch (error) {
+      addToLog(`✗ Supabase connection test failed: ${error.message}`, 'error');
+      return { success: false, message: error.message };
+    }
+  };
+
   const runDebugTest = async () => {
     addToLog('Running detailed Google Drive debug...', 'info');
 
@@ -200,6 +222,7 @@ const GoogleDriveTestPage = () => {
     addToLog('Starting Google Drive integration tests...', 'info');
 
     const tests = [
+      { name: 'supabaseConnection', test: runSupabaseConnectionTest },
       { name: 'debug', test: runDebugTest },
       { name: 'configuration', test: runConfigurationTest },
       { name: 'initialization', test: runInitializationTest },
@@ -290,6 +313,26 @@ const GoogleDriveTestPage = () => {
               API Testing
             </button>
             <button
+              onClick={() => setActiveTab('upload')}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                activeTab === 'upload'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              Upload Test
+            </button>
+            <button
+              onClick={() => setActiveTab('supabase')}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                activeTab === 'supabase'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              Supabase Test
+            </button>
+            <button
               onClick={() => setActiveTab('setup')}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                 activeTab === 'setup'
@@ -304,6 +347,14 @@ const GoogleDriveTestPage = () => {
 
         {activeTab === 'setup' ? (
           <DomainInstructions />
+        ) : activeTab === 'supabase' ? (
+          <div className="max-w-2xl mx-auto">
+            <SupabaseFetchTest />
+          </div>
+        ) : activeTab === 'upload' ? (
+          <div className="max-w-2xl mx-auto">
+            <GoogleDriveTestRunner />
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Configuration Panel */}
@@ -393,6 +444,7 @@ const GoogleDriveTestPage = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
+                  { key: 'supabaseConnection', label: 'Supabase Connection', icon: <CheckCircle className="w-4 h-4" /> },
                   { key: 'debug', label: 'Debug Analysis', icon: <AlertCircle className="w-4 h-4" /> },
                   { key: 'configuration', label: 'Configuration', icon: <TestTube className="w-4 h-4" /> },
                   { key: 'initialization', label: 'API Initialization', icon: <RefreshCw className="w-4 h-4" /> },

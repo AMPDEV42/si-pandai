@@ -7,6 +7,11 @@ import { supabase, withErrorHandling, supabaseHelpers } from '../lib/customSupab
 import { apiLogger } from '../lib/logger';
 import { validateSubmissionForm } from '../lib/validation';
 import { SUBMISSION_STATUS } from '../constants';
+import {
+  notifyNewSubmission,
+  notifySubmissionStatusUpdate,
+  notifyVerificationResult
+} from './notificationService';
 
 class SubmissionService {
   /**
@@ -169,6 +174,30 @@ class SubmissionService {
         title: submission.title
       });
 
+      // Send notifications
+      if (result.data) {
+        try {
+          // Get admin users to notify
+          const { data: adminUsers } = await supabase
+            .from('profiles')
+            .select('id')
+            .in('role', ['admin-master', 'admin-unit']);
+
+          const adminIds = adminUsers ? adminUsers.map(admin => admin.id) : [];
+
+          // Send notifications about new submission
+          await notifyNewSubmission(result.data, userId, adminIds);
+
+          apiLogger.info('Submission notifications sent', {
+            submissionId: result.data.id,
+            adminCount: adminIds.length
+          });
+        } catch (notificationError) {
+          apiLogger.error('Error sending submission notifications', notificationError);
+          // Don't fail the submission creation if notifications fail
+        }
+      }
+
       return result;
     }, 'createSubmission');
   }
@@ -214,6 +243,29 @@ class SubmissionService {
         userId,
         updates: Object.keys(updateData)
       });
+
+      // Send notifications for status changes
+      if (result.data && updateData.status) {
+        try {
+          // Get the previous status if available
+          const previousStatus = updateData.previousStatus;
+
+          // Send status update notification
+          await notifySubmissionStatusUpdate(result.data, userId, previousStatus);
+
+          // Send verification result notification
+          await notifyVerificationResult(result.data, updateData.status, updateData.review_notes);
+
+          apiLogger.info('Status change notifications sent', {
+            submissionId: id,
+            newStatus: updateData.status,
+            previousStatus
+          });
+        } catch (notificationError) {
+          apiLogger.error('Error sending status change notifications', notificationError);
+          // Don't fail the update if notifications fail
+        }
+      }
 
       return result;
     }, `updateSubmission: ${id}`);
@@ -307,30 +359,33 @@ class SubmissionService {
   /**
    * Approve submission
    */
-  async approveSubmission(id, userId, notes = '') {
+  async approveSubmission(id, userId, notes = '', previousStatus = null) {
     return this.updateSubmission(id, {
       status: SUBMISSION_STATUS.APPROVED,
-      review_notes: notes
+      review_notes: notes,
+      previousStatus
     }, userId);
   }
 
   /**
    * Reject submission
    */
-  async rejectSubmission(id, userId, notes = '') {
+  async rejectSubmission(id, userId, notes = '', previousStatus = null) {
     return this.updateSubmission(id, {
       status: SUBMISSION_STATUS.REJECTED,
-      review_notes: notes
+      review_notes: notes,
+      previousStatus
     }, userId);
   }
 
   /**
    * Request revision for submission
    */
-  async requestRevision(id, userId, notes = '') {
+  async requestRevision(id, userId, notes = '', previousStatus = null) {
     return this.updateSubmission(id, {
       status: SUBMISSION_STATUS.REVISION,
-      review_notes: notes
+      review_notes: notes,
+      previousStatus
     }, userId);
   }
 

@@ -52,6 +52,28 @@ export default function DataPegawai() {
     fetchPegawai();
   }, []);
 
+  // Check for update flag and refresh data
+  useEffect(() => {
+    const checkForUpdates = () => {
+      const wasUpdated = localStorage.getItem('employee_updated');
+      if (wasUpdated === 'true' && !isLoading) {
+        localStorage.removeItem('employee_updated');
+        fetchPegawai();
+      }
+    };
+
+    // Check immediately when component mounts
+    checkForUpdates();
+
+    // Also check on window focus
+    const handleFocus = () => {
+      checkForUpdates();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isLoading]);
+
   const fetchPegawai = async () => {
     try {
       const data = await getPegawai();
@@ -92,13 +114,16 @@ export default function DataPegawai() {
     try {
       if (isEditMode) {
         await updatePegawai(formData.id, formData);
+        alert('Data pegawai berhasil diperbarui!');
       } else {
         await createPegawai(formData);
+        alert('Data pegawai berhasil ditambahkan!');
       }
-      
+
       setIsDialogOpen(false);
-      fetchPegawai();
       resetForm();
+      // Force refresh the data
+      await fetchPegawai();
     } catch (error) {
       console.error('Error saving pegawai:', error);
       alert('Terjadi kesalahan saat menyimpan data pegawai');

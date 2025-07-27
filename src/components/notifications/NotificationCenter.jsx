@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Bell, X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { Bell, X, CheckCircle, AlertCircle, Info, AlertTriangle, FileText, UserCheck, Clock, XCircle } from 'lucide-react';
 import { supabase } from '../../lib/customSupabaseClient';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationService';
@@ -10,6 +10,10 @@ const ICON_MAP = {
   success: <CheckCircle className="w-4 h-4 text-green-500" />,
   warning: <AlertTriangle className="w-4 h-4 text-yellow-500" />,
   error: <AlertCircle className="w-4 h-4 text-red-500" />,
+  submission: <FileText className="w-4 h-4 text-blue-500" />,
+  submission_update: <Clock className="w-4 h-4 text-amber-500" />,
+  verification_result: <UserCheck className="w-4 h-4 text-green-500" />,
+  data_update: <Info className="w-4 h-4 text-indigo-500" />,
 };
 
 const formatTimeAgo = (dateString) => {
@@ -43,7 +47,7 @@ const NotificationItem = React.memo(({ notification, onMarkAsRead, onNotificatio
       >
         <div className="flex items-start">
           <div className="flex-shrink-0 pt-0.5">
-            {ICON_MAP.info}
+            {ICON_MAP[notification.type] || ICON_MAP.info}
           </div>
           <div className="ml-3 flex-1 min-w-0">
             <div className="flex justify-between">

@@ -29,6 +29,7 @@ import EmployeeSelection from '../components/submission/EmployeeSelection';
 import RequirementUpload from '../components/submission/RequirementUpload';
 import GoogleDriveAuth from '../components/common/GoogleDriveAuth';
 import { getSubmissionTypeById } from '../data/submissionTypes';
+import { testGoogleDriveUpload, getGoogleDriveStatus } from '../utils/googleDriveTest';
 import { submissionService } from '../services/submissionService';
 import { googleDriveService } from '../services/googleDriveService';
 import { apiLogger } from '../lib/logger';
@@ -60,6 +61,7 @@ const ImprovedSubmissionPage = () => {
   const [uploadingFiles, setUploadingFiles] = useState({});
   const [isGoogleDriveAuthenticated, setIsGoogleDriveAuthenticated] = useState(false);
   const [useGoogleDrive, setUseGoogleDrive] = useState(false);
+  const [isTestingUpload, setIsTestingUpload] = useState(false);
 
   // Load submission type
   useEffect(() => {
@@ -251,6 +253,43 @@ const ImprovedSubmissionPage = () => {
     }
   };
 
+  const handleTestGoogleDriveUpload = async () => {
+    setIsTestingUpload(true);
+
+    try {
+      const result = await testGoogleDriveUpload();
+
+      if (result.success) {
+        toast({
+          title: 'Test upload berhasil!',
+          description: `File test berhasil diupload ke Google Drive: ${result.fileName}`,
+          action: result.viewLink ? (
+            <Button
+              size="sm"
+              onClick={() => window.open(result.viewLink, '_blank')}
+            >
+              Lihat File
+            </Button>
+          ) : null
+        });
+      } else {
+        toast({
+          title: 'Test upload gagal',
+          description: result.error,
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Test upload error',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsTestingUpload(false);
+    }
+  };
+
   if (!submissionType) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -404,6 +443,40 @@ const ImprovedSubmissionPage = () => {
                     setUseGoogleDrive(authenticated);
                   }}
                 />
+
+                {/* Test Upload Button */}
+                {isGoogleDriveAuthenticated && (
+                  <Card className="border-blue-500/20 bg-blue-500/5">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-blue-300">Test Google Drive Upload</h4>
+                          <p className="text-xs text-blue-200/80 mt-1">
+                            Uji coba upload file ke Google Drive untuk memastikan integrasi berfungsi
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={handleTestGoogleDriveUpload}
+                          disabled={isTestingUpload}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {isTestingUpload ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2" />
+                              Testing...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Test Upload
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {submissionType.requirements?.map((requirement, index) => (
                   <RequirementUpload

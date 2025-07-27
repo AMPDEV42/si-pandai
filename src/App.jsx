@@ -11,6 +11,7 @@ import { Toaster } from './components/ui/toaster';
 import { AuthProvider, useAuth } from './contexts/SupabaseAuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import NetworkErrorHandler from './components/common/NetworkErrorHandler';
 import { PageSkeleton } from './components/common/LoadingSkeletons';
 import config from './config/environment';
 import LoginPage from './pages/LoginPage';
@@ -29,6 +30,7 @@ import SubmissionHistory from './pages/SubmissionHistory';
 import NewSubmissionPage from './pages/NewSubmissionPage';
 import ImprovedSubmissionPage from './pages/ImprovedSubmissionPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
+import EmployeeEditPage from './pages/EmployeeEditPage';
 import DataPegawai from './pages/pegawai/index.jsx';
 import GoogleDriveTestPage from './pages/GoogleDriveTestPage';
 import SupabaseMonitor from './components/debug/SupabaseMonitor';
@@ -183,6 +185,14 @@ const AppContent = () => {
             ),
           },
           {
+            path: "/pegawai/edit/:employeeId",
+            element: (
+              <ProtectedRoute allowedRoles={['admin-master']}>
+                <EmployeeEditPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
             path: "/test/google-drive",
             element: (
               <ProtectedRoute allowedRoles={['admin-master', 'admin-unit']}>
@@ -226,11 +236,13 @@ const AppContent = () => {
           <meta name="author" content={config.app.author} />
           <meta name="version" content={config.app.version} />
         </Helmet>
-        <div className="min-h-screen">
-          <Toaster />
-          <RouterProvider router={router} />
-          <SupabaseMonitor />
-        </div>
+        <NetworkErrorHandler>
+          <div className="min-h-screen">
+            <Toaster />
+            <RouterProvider router={router} />
+            <SupabaseMonitor />
+          </div>
+        </NetworkErrorHandler>
       </HelmetProvider>
     </ErrorBoundary>
   );

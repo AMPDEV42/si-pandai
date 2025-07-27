@@ -9,8 +9,21 @@ import { apiLogger } from './logger';
 
 // Validate configuration
 if (!config.supabase.url || !config.supabase.anonKey) {
+  apiLogger.error('Supabase configuration missing', {
+    hasUrl: !!config.supabase.url,
+    hasAnonKey: !!config.supabase.anonKey,
+    urlPrefix: config.supabase.url?.substring(0, 30) + '...',
+    anonKeyPrefix: config.supabase.anonKey?.substring(0, 20) + '...'
+  });
   throw new Error('Supabase configuration is missing. Please check environment variables.');
 }
+
+// Log successful configuration (without exposing sensitive data)
+apiLogger.debug('Supabase client configured', {
+  url: config.supabase.url.substring(0, 30) + '...',
+  hasAnonKey: !!config.supabase.anonKey,
+  anonKeyLength: config.supabase.anonKey.length
+});
 
 // Professional Supabase client configuration
 const supabaseConfig = {
@@ -44,11 +57,20 @@ export const supabase = createClient(
   supabaseConfig
 );
 
+// Test client immediately after creation in development
+if (config.isDevelopment) {
+  console.log('🔧 Supabase client created with:', {
+    url: config.supabase.url.substring(0, 30) + '...',
+    hasAnonKey: !!config.supabase.anonKey,
+    client: !!supabase
+  });
+}
+
 // Retry configuration
 const RETRY_CONFIG = {
-  maxRetries: 3,
-  initialDelay: 1000,
-  maxDelay: 5000,
+  maxRetries: 2,
+  initialDelay: 500,
+  maxDelay: 3000,
   backoffFactor: 2
 };
 
@@ -58,16 +80,27 @@ const isRetryableError = (error) => {
     'Failed to fetch',
     'Network request failed',
     'TypeError: fetch failed',
+    'TypeError: Failed to fetch',
     'Connection reset',
     'ECONNRESET',
     'ENOTFOUND',
-    'ETIMEDOUT'
+    'ETIMEDOUT',
+    'ENETUNREACH',
+    'ECONNREFUSED',
+    'Load failed',
+    'fetch failed',
+    'NetworkError',
+    'AbortError',
+    'TimeoutError'
   ];
 
   const errorMessage = error?.message || error?.toString() || '';
+  const errorName = error?.name || '';
+
   return retryableErrors.some(retryableError =>
-    errorMessage.toLowerCase().includes(retryableError.toLowerCase())
-  );
+    errorMessage.toLowerCase().includes(retryableError.toLowerCase()) ||
+    errorName.toLowerCase().includes(retryableError.toLowerCase())
+  ) || error instanceof TypeError;
 };
 
 // Sleep function for delays
@@ -83,9 +116,26 @@ export const withErrorHandling = async (operation, context = '') => {
       const result = await operation();
       const duration = Date.now() - startTime;
 
-      if (result.error) {
+      // Check for Supabase error in result
+      if (result?.error) {
         const error = new Error(result.error.message || 'Database operation failed');
         error.supabaseError = result.error;
+        error.code = result.error.code;
+
+        // Log specific API key error
+        if (result.error.message?.includes('No API key')) {
+          apiLogger.error(`Supabase API key missing: ${context}`, {
+            error: result.error,
+            hint: result.error.hint
+          });
+        }
+
+        // Don't retry API key errors or authentication errors
+        if (result.error.message?.includes('No API key') ||
+            result.error.message?.includes('Invalid API key') ||
+            result.error.code === 'invalid_api_key') {
+          throw error;
+        }
 
         // Check if this is a retryable Supabase error
         if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
@@ -110,18 +160,27 @@ export const withErrorHandling = async (operation, context = '') => {
       if (attempt > 0) {
         apiLogger.info(`Supabase operation succeeded after ${attempt + 1} attempts: ${context}`, {
           duration: `${duration}ms`,
-          count: result.data?.length || (result.data ? 1 : 0)
+          count: result?.data?.length || (result?.data ? 1 : 0)
         });
       } else {
         apiLogger.debug(`Supabase operation completed: ${context}`, {
           duration: `${duration}ms`,
-          count: result.data?.length || (result.data ? 1 : 0)
+          count: result?.data?.length || (result?.data ? 1 : 0)
         });
       }
 
       return result;
     } catch (error) {
       lastError = error;
+
+      // Don't retry if it's a response body already read error
+      if (error.message?.includes('body stream already read')) {
+        apiLogger.error(`Response body already consumed: ${context}`, {
+          error: error.message,
+          stack: error.stack
+        });
+        break;
+      }
 
       // Check if this is a retryable network error
       if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
@@ -147,8 +206,8 @@ export const withErrorHandling = async (operation, context = '') => {
 
   // All retries exhausted
   apiLogger.error(`Supabase operation error after ${RETRY_CONFIG.maxRetries + 1} attempts: ${context}`, {
-    error: lastError.message,
-    stack: lastError.stack,
+    error: lastError?.message,
+    stack: lastError?.stack,
     isNetworkError: isRetryableError(lastError)
   });
 
