@@ -82,23 +82,29 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
       // Handle dot notation for nested fields
       const keys = Array.isArray(key) ? key : [key];
       let value = null;
-      
+
+      // Safety check for personalInfo
+      if (!personalInfo || typeof personalInfo !== 'object') {
+        console.warn('PersonalInfo is not available or not an object:', personalInfo);
+        return defaultValue;
+      }
+
       // Try to find the first non-null value from the keys array
       for (const k of keys) {
-        const nestedValue = k.split('.').reduce((obj, k) => 
+        const nestedValue = k.split('.').reduce((obj, k) =>
           (obj && obj[k] !== undefined) ? obj[k] : null, personalInfo);
-        
-        if (nestedValue !== null && nestedValue !== undefined && nestedValue !== '') {
+
+        if (nestedValue !== null && nestedValue !== undefined && nestedValue !== '' && nestedValue !== 'null') {
           value = nestedValue;
           break;
         }
       }
-      
+
       // Return default value if no value found
-      if (value === null || value === undefined || value === '') {
+      if (value === null || value === undefined || value === '' || value === 'null') {
         return defaultValue;
       }
-      
+
       // Apply formatting based on format parameter
       switch (format) {
         case 'date':
@@ -106,7 +112,7 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
         case 'phone':
           return formatPhone(value);
         default:
-          return value;
+          return value.toString().trim();
       }
     } catch (error) {
       console.error(`Error getting field ${key}:`, error);
