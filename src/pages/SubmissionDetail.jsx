@@ -14,6 +14,7 @@ import VerificationActions from '@/components/submission/VerificationActions';
 import HistoryTimeline from '@/components/submission/HistoryTimeline';
 import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { submissionService } from '../services/submissionService';
+import { getPegawai } from '../services/pegawaiService';
 import { supabase } from '../lib/customSupabaseClient';
 
 const SubmissionDetail = () => {
@@ -24,6 +25,23 @@ const SubmissionDetail = () => {
   const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(false);
   const [actionNotes, setActionNotes] = useState('');
+  
+  // Format phone number to Indonesian format
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return '-';
+    // Remove all non-digit characters
+    const cleaned = ('' + phone).replace(/\D/g, '');
+    // Check if number starts with 0
+    if (cleaned.startsWith('0')) {
+      return cleaned.replace(/^(\d{3})(\d{4})(\d{4,})$/, '$1-$2-$3');
+    }
+    // Check if number starts with 62 (Indonesia country code)
+    if (cleaned.startsWith('62')) {
+      return cleaned.replace(/^(62)(\d{3})(\d{4})(\d{4,})$/, '+$1 $2-$3-$4');
+    }
+    // Return as is if format is unknown
+    return phone;
+  };
 
   const fetchSubmission = useCallback(async () => {
     if (!user || !id) return;
@@ -42,36 +60,315 @@ const SubmissionDetail = () => {
         throw new Error('Unauthorized access to this submission');
       }
 
-      // Get submitter info from either the profile or submission data
-      const submitterInfo = submissionData.submitter || {
-        full_name: submissionData.nama_pemohon || 'Tidak Diketahui',
-        nip: submissionData.nip || '-',
-        position: submissionData.jabatan || '-',
-        unit_kerja: submissionData.unit_kerja || '-',
-        phone: submissionData.no_telp || '-',
-        email: submissionData.email || '-',
+      // Log the raw submission data for debugging
+      console.group('=== DEBUG: Raw Submission Data ===');
+      console.log('Full submission data:', submissionData);
+      console.log('Submitter data:', submissionData.submitter);
+      console.log('Data pemohon:', submissionData.data_pemohon);
+      console.log('NIP from submission:', submissionData.nip);
+      console.groupEnd();
+
+      // Get submitter NIP from various possible fields
+      const nip = submissionData.nip || 
+                 (submissionData.submitter && submissionData.submitter.nip) ||
+                 (submissionData.data_pemohon && submissionData.data_pemohon.nip);
+
+      let employeeData = null;
+      
+      // Log NIP being used for employee lookup
+      console.group('=== DEBUG: Employee Data Lookup ===');
+      console.log('NIP being used for lookup:', nip);
+      
+      // If we have a NIP, try to fetch detailed employee data
+      if (nip) {
+        try {
+          // First try to get by NIP using the getPegawai function
+          const pegawaiList = await getPegawai();
+          console.log('Fetched pegawai list:', pegawaiList);
+          
+          // Convert NIP to string for comparison to ensure type matching
+          const nipStr = nip.toString().trim();
+          const pegawai = pegawaiList.find(p => {
+            const pegawaiNip = p.nip ? p.nip.toString().trim() : '';
+            return pegawaiNip === nipStr;
+          });
+          
+          if (pegawai) {
+            employeeData = pegawai;
+            console.log('Found employee data:', employeeData);
+          } else {
+            console.warn('No employee data found in getPegawai for NIP:', nipStr);
+            
+            // Fallback to direct Supabase query if needed
+            const { data, error } = await supabase
+              .from('pegawai')
+              .select('*')
+              .eq('nip', nipStr)
+              .single();
+              
+            if (!error && data) {
+              console.log('Fetched employee data using direct query:', data);
+              // Convert snake_case to camelCase for consistency
+              const formattedData = {};
+              Object.keys(data).forEach(key => {
+                const camelKey = key.replace(/_(\w)/g, (_, letter) => letter.toUpperCase());
+                formattedData[camelKey] = data[key];
+              });
+              employeeData = formattedData;
+            } else if (error) {
+              console.error('Supabase query error:', error);
+            }
+          }
+        } catch (err) {
+          console.error('Error in employee data fetching:', err);
+        }
+      } else {
+        console.warn('No NIP found in submission data');
+        console.log('Available submission fields:', Object.keys(submissionData));
+      }
+      
+      console.log('Final employee data:', employeeData);
+      console.groupEnd();
+
+      // Format date helper function
+      const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        try {
+          // Handle both string and Date objects
+          const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+          
+          // Check if date is valid
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid date:', dateString);
+            return '-';
+          }
+          
+          // Format the date in Indonesian format
+          return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+          });
+        } catch (e) {
+          console.error('Error formatting date:', e, 'Input:', dateString);
+          return '-';
+        }
       };
 
+      // Format gender to Indonesian format
+      const formatGender = (gender) => {
+        if (!gender) return '-';
+        
+        // Convert to string and trim
+        const genderStr = String(gender).trim().toLowerCase();
+        
+        // Map of possible gender values to Indonesian format
+        const genderMap = {
+          'l': 'Laki-laki',
+          'p': 'Perempuan',
+          'm': 'Laki-laki',
+          'f': 'Perempuan',
+          'male': 'Laki-laki',
+          'female': 'Perempuan',
+          'laki-laki': 'Laki-laki',
+          'perempuan': 'Perempuan',
+          'pria': 'Laki-laki',
+          'wanita': 'Perempuan',
+          'lk': 'Laki-laki',
+          'pr': 'Perempuan',
+          'laki': 'Laki-laki',
+          'per': 'Perempuan',
+          'laki laki': 'Laki-laki',
+          'laki-laki': 'Laki-laki',
+          '1': 'Laki-laki',
+          '2': 'Perempuan'
+        };
+        
+        // Return mapped value or original if not found
+        return genderMap[genderStr] || genderStr.charAt(0).toUpperCase() + genderStr.slice(1);
+      };
+
+      // Log the employee data for debugging
+      console.group('=== DEBUG: Employee Data Before Mapping ===');
+      console.log('Employee data object:', employeeData);
+      if (employeeData) {
+        console.log('Employee data keys:', Object.keys(employeeData));
+        console.log('NIP in employee data:', employeeData.nip || employeeData.nomorIndukPegawai || employeeData.nomor_induk_pegawai);
+        console.log('Nama in employee data:', employeeData.nama || employeeData.namaLengkap || employeeData.name);
+        console.log('Tempat lahir in employee data:', employeeData.tempatLahir || employeeData.tempat_lahir);
+        console.log('Tanggal lahir in employee data:', employeeData.tanggalLahir || employeeData.tanggal_lahir);
+        console.log('Jenis kelamin in employee data:', employeeData.jenisKelamin || employeeData.jenis_kelamin || employeeData.gender);
+        console.log('No telepon in employee data:', 
+          employeeData.noHp || employeeData.no_hp || 
+          employeeData.noTelepon || employeeData.no_telepon || 
+          employeeData.telepon || employeeData.phoneNumber);
+        console.log('Email in employee data:', employeeData.email);
+        console.log('Jabatan in employee data:', employeeData.jabatan || employeeData.nama_jabatan);
+        console.log('Unit kerja in employee data:', employeeData.unitKerja || employeeData.unit_kerja);
+      }
+      console.log('Submission data pemohon:', submissionData.data_pemohon);
+      console.groupEnd();
+      
+      // Log the final personal info being created
+      console.group('=== DEBUG: Creating Personal Info ===');
+      
+      // Create personal info object with all required fields
+      const personalInfo = {
+        // Basic Information
+        name: (employeeData?.namaLengkap || 
+              employeeData?.nama ||
+              employeeData?.name ||
+              submissionData.nama_pemohon || 
+              submissionData.submitter?.name || 
+              submissionData.personalInfo?.name ||
+              submissionData.data_pemohon?.nama ||
+              'Tidak Diketahui').toString().trim(),
+        
+        nip: (employeeData?.nip || 
+             employeeData?.nomorIndukPegawai || 
+             employeeData?.nomor_induk_pegawai ||
+             submissionData.nip || 
+             submissionData.personalInfo?.nip || 
+             submissionData.data_pemohon?.nip ||
+             '-').toString().trim(),
+        
+        email: (employeeData?.email || 
+               submissionData.email || 
+               submissionData.personalInfo?.email || 
+               submissionData.submitter?.email ||
+               submissionData.data_pemohon?.email ||
+               (submissionData.data_pemohon?.user?.email) ||
+               '-').toString().trim().toLowerCase(),
+        
+        phone: formatPhoneNumber(
+          (employeeData?.noHp || 
+           employeeData?.no_hp || 
+           employeeData?.noTelepon || 
+           employeeData?.no_telepon || 
+           employeeData?.telepon || 
+           employeeData?.phoneNumber ||
+           submissionData.no_telp || 
+           submissionData.personalInfo?.phone || 
+           submissionData.data_pemohon?.no_telp ||
+           submissionData.data_pemohon?.no_telepon ||
+           '').toString().trim()
+        ),
+        
+        // Birth Information
+        tempatLahir: (employeeData?.tempatLahir || 
+                     employeeData?.tempat_lahir || 
+                     submissionData.data_pemohon?.tempat_lahir ||
+                     '-').toString().trim(),
+        
+        tanggalLahir: formatDate(employeeData?.tanggalLahir || 
+                               employeeData?.tanggal_lahir || 
+                               submissionData.data_pemohon?.tanggal_lahir ||
+                               null),
+        
+        jenisKelamin: formatGender(employeeData?.jenisKelamin || 
+                                 employeeData?.jenis_kelamin || 
+                                 employeeData?.gender ||
+                                 submissionData.data_pemohon?.jenis_kelamin ||
+                                 null),
+        
+        // Employment Information
+        statusKepegawaian: (employeeData?.statusKepegawaian || 
+                           employeeData?.status_kepegawaian || 
+                           submissionData.data_pemohon?.status_kepegawaian || 
+                           '-').toString().trim(),
+        
+        jenisJabatan: (employeeData?.jenisJabatan || 
+                      employeeData?.jenis_jabatan || 
+                      submissionData.data_pemohon?.jenis_jabatan || 
+                      '-').toString().trim(),
+        
+        pangkatGolongan: (employeeData?.pangkatGolongan || 
+                         employeeData?.pangkat_golongan || 
+                         (employeeData?.golongan ? `Golongan ${employeeData.golongan}` : null) ||
+                         submissionData.data_pemohon?.pangkat_golongan || 
+                         '-').toString().trim(),
+        
+        tmt: formatDate(employeeData?.tmt || 
+                       employeeData?.tanggal_tmt || 
+                       submissionData.data_pemohon?.tmt ||
+                       null),
+        
+        // Job Information
+        position: (employeeData?.jabatan || 
+                  employeeData?.nama_jabatan || 
+                  submissionData.jabatan || 
+                  submissionData.personalInfo?.position || 
+                  submissionData.data_pemohon?.jabatan || 
+                  '-').toString().trim(),
+        
+        unit: (employeeData?.unitKerja || 
+              employeeData?.unit_kerja || 
+              employeeData?.instansi || 
+              employeeData?.instansi_kerja ||
+              submissionData.unit_kerja || 
+              submissionData.personalInfo?.unit || 
+              submissionData.data_pemohon?.unit_kerja ||
+              submissionData.data_pemohon?.instansi_kerja ||
+              'Sekretariat Direktorat Jenderal Pembinaan Pelatihan Vokasi dan Produktivitas').toString().trim(),
+        
+        pendidikanTerakhir: (employeeData?.pendidikanTerakhir || 
+                           employeeData?.pendidikan_terakhir || 
+                           submissionData.data_pemohon?.pendidikan_terakhir || 
+                           '-').toString().trim(),
+        
+        // Address Information
+        alamat: (employeeData?.alamat || 
+                employeeData?.alamat_lengkap || 
+                (employeeData?.alamatJalan ? 
+                  `${employeeData.alamatJalan}, ${employeeData.kelurahan || ''}, ${employeeData.kecamatan || ''}, ${employeeData.kota || ''}, ${employeeData.provinsi || ''} ${employeeData.kodePos ? ', ' + employeeData.kodePos : ''}`.replace(/,\s*,/g, ',').replace(/,\s*$/, '') : 
+                  null) ||
+                submissionData.data_pemohon?.alamat || 
+                '-').toString().trim(),
+                
+        // Add avatar URL if available
+        avatar_url: employeeData?.foto || 
+                   employeeData?.foto_profil ||
+                   employeeData?.photoUrl ||
+                   employeeData?.photo_url ||
+                   submissionData.data_pemohon?.foto ||
+                   null
+      };
+
+      console.log('Final personal info object:', personalInfo);
+      console.groupEnd();
+      
+      // Log the final personal info for debugging
+      console.log('Final personal info:', personalInfo);
+      
       // Ensure all required fields have default values
       const transformedData = {
         ...submissionData,
-        personalInfo: {
-          name: submitterInfo.full_name || submitterInfo.name || 'Tidak Diketahui',
-          nip: submitterInfo.nip || '-',
-          position: submitterInfo.position || submitterInfo.jabatan || '-',
-          unit: submitterInfo.unit_kerja || submitterInfo.unit || '-',
-          phone: submitterInfo.phone || submitterInfo.no_telp || '-',
-          email: submitterInfo.email || '-',
-          avatar_url: submitterInfo.avatar_url || null
-        },
-        requirements: Array.isArray(submissionData.requirements) ? submissionData.requirements : [],
-        documents: Array.isArray(submissionData.documents) ? submissionData.documents : [],
-        checkedRequirements: Array.isArray(submissionData.checkedRequirements) 
-          ? submissionData.checkedRequirements 
+        // Map created_at and updated_at to camelCase for consistency
+        createdAt: submissionData.created_at,
+        updatedAt: submissionData.updated_at,
+        // Map category if it exists, otherwise use submission type
+        category: submissionData.category || submissionData.submission_type || 'Umum',
+        personalInfo,
+        // Ensure all array fields are properly initialized
+        requirements: Array.isArray(submissionData.requirements) 
+          ? submissionData.requirements 
+          : (submissionData.requirements_data ? Object.values(submissionData.requirements_data) : []),
+        documents: Array.isArray(submissionData.documents) 
+          ? submissionData.documents 
           : [],
-        history: Array.isArray(submissionData.history) ? submissionData.history : [],
-        notes: Array.isArray(submissionData.notes) ? submissionData.notes : []
+        checkedRequirements: Array.isArray(submissionData.checked_requirements) 
+          ? submissionData.checked_requirements 
+          : [],
+        history: Array.isArray(submissionData.history) 
+          ? submissionData.history 
+          : [],
+        notes: Array.isArray(submissionData.notes) 
+          ? submissionData.notes 
+          : (submissionData.review_notes ? [submissionData.review_notes] : [])
       };
+      
+      // Log the transformed data for debugging
+      console.log('Transformed submission data:', transformedData);
 
       console.log('Transformed submission data:', transformedData);
       setSubmission(transformedData);
