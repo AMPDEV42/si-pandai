@@ -155,13 +155,14 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
 
   // Field definitions with proper schema
   const fields = [
-    { 
+    {
       label: 'Nama Lengkap',
-      key: 'name',
+      key: ['name', 'namaLengkap', 'nama'],
       type: FieldType.TEXT,
       icon: <UserIcon className="w-4 h-4" />,
       colSpan: 2,
-      copyable: true
+      copyable: true,
+      defaultValue: 'Tidak Diketahui'
     },
     { 
       label: 'NIP',
