@@ -32,6 +32,12 @@ const fieldSchema = {
 };
 
 const SubmitterInfoCard = ({ personalInfo = {} }) => {
+  // Debug logging to understand what data we're receiving
+  console.group('=== SubmitterInfoCard Debug ===');
+  console.log('Received personalInfo:', personalInfo);
+  console.log('PersonalInfo type:', typeof personalInfo);
+  console.log('PersonalInfo keys:', personalInfo ? Object.keys(personalInfo) : 'No keys');
+  console.groupEnd();
   // Format phone number
   const formatPhone = (phone) => {
     if (!phone || phone === '-') return '-';
