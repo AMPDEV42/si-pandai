@@ -14,8 +14,6 @@ import VerificationActions from '@/components/submission/VerificationActions';
 import HistoryTimeline from '@/components/submission/HistoryTimeline';
 import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { submissionService } from '../services/submissionService';
-import { getPegawai } from '../services/pegawaiService';
-import { supabase } from '../lib/customSupabaseClient';
 
 const SubmissionDetail = () => {
   const { id } = useParams();
