@@ -63,71 +63,9 @@ const SubmissionDetail = () => {
       // Log the raw submission data for debugging
       console.group('=== DEBUG: Raw Submission Data ===');
       console.log('Full submission data:', submissionData);
-      console.log('Submitter data:', submissionData.submitter);
-      console.log('Data pemohon:', submissionData.data_pemohon);
-      console.log('NIP from submission:', submissionData.nip);
-      console.groupEnd();
-
-      // Get submitter NIP from various possible fields
-      const nip = submissionData.nip || 
-                 (submissionData.submitter && submissionData.submitter.nip) ||
-                 (submissionData.data_pemohon && submissionData.data_pemohon.nip);
-
-      let employeeData = null;
-      
-      // Log NIP being used for employee lookup
-      console.group('=== DEBUG: Employee Data Lookup ===');
-      console.log('NIP being used for lookup:', nip);
-      
-      // If we have a NIP, try to fetch detailed employee data
-      if (nip) {
-        try {
-          // First try to get by NIP using the getPegawai function
-          const pegawaiList = await getPegawai();
-          console.log('Fetched pegawai list:', pegawaiList);
-          
-          // Convert NIP to string for comparison to ensure type matching
-          const nipStr = nip.toString().trim();
-          const pegawai = pegawaiList.find(p => {
-            const pegawaiNip = p.nip ? p.nip.toString().trim() : '';
-            return pegawaiNip === nipStr;
-          });
-          
-          if (pegawai) {
-            employeeData = pegawai;
-            console.log('Found employee data:', employeeData);
-          } else {
-            console.warn('No employee data found in getPegawai for NIP:', nipStr);
-            
-            // Fallback to direct Supabase query if needed
-            const { data, error } = await supabase
-              .from('pegawai')
-              .select('*')
-              .eq('nip', nipStr)
-              .single();
-              
-            if (!error && data) {
-              console.log('Fetched employee data using direct query:', data);
-              // Convert snake_case to camelCase for consistency
-              const formattedData = {};
-              Object.keys(data).forEach(key => {
-                const camelKey = key.replace(/_(\w)/g, (_, letter) => letter.toUpperCase());
-                formattedData[camelKey] = data[key];
-              });
-              employeeData = formattedData;
-            } else if (error) {
-              console.error('Supabase query error:', error);
-            }
-          }
-        } catch (err) {
-          console.error('Error in employee data fetching:', err);
-        }
-      } else {
-        console.warn('No NIP found in submission data');
-        console.log('Available submission fields:', Object.keys(submissionData));
-      }
-      
-      console.log('Final employee data:', employeeData);
+      console.log('Personal info from service:', submissionData.personalInfo);
+      console.log('Employee data from service:', submissionData._employeeData);
+      console.log('Debug info:', submissionData._debug);
       console.groupEnd();
 
       // Format date helper function
