@@ -408,8 +408,11 @@ class SubmissionService {
    */
   async updateSubmission(id, updateData, userId) {
     return withErrorHandling(async () => {
+      // Extract previousStatus before spreading updateData to avoid including it in the database update
+      const { previousStatus, ...updateDataWithoutStatus } = updateData;
+      
       const updates = {
-        ...updateData,
+        ...updateDataWithoutStatus,
         updated_at: new Date().toISOString(),
         ...(updateData.status && { reviewed_by: userId, reviewed_at: new Date().toISOString() })
       };

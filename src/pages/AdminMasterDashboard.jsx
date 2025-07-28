@@ -105,7 +105,7 @@ const AdminMasterDashboard = () => {
   }, [submissions, searchTerm, filterStatus]);
 
   const handleViewSubmission = useCallback((submissionId) => {
-    navigate(`/dashboard/submission/${submissionId}`);
+    navigate(`/pengajuan/${submissionId}`);
   }, [navigate]);
 
   const getStatusColor = useCallback((status) => {
