@@ -164,26 +164,29 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
       copyable: true,
       defaultValue: 'Tidak Diketahui'
     },
-    { 
+    {
       label: 'NIP',
-      key: 'nip',
+      key: ['nip', 'nomorIndukPegawai'],
       type: FieldType.TEXT,
       icon: <Tag className="w-4 h-4" />,
-      copyable: true
+      copyable: true,
+      defaultValue: '-'
     },
-    { 
+    {
       label: 'Email',
       key: 'email',
       type: FieldType.EMAIL,
       icon: <Mail className="w-4 h-4" />,
-      copyable: true
+      copyable: true,
+      defaultValue: '-'
     },
-    { 
+    {
       label: 'No. Telepon',
-      key: 'phone',
+      key: ['phone', 'noHp', 'noTelepon'],
       type: FieldType.PHONE,
       icon: <Phone className="w-4 h-4" />,
-      copyable: true
+      copyable: true,
+      defaultValue: '-'
     },
     { 
       label: 'Tempat, Tanggal Lahir',
