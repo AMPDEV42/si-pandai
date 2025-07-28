@@ -50,7 +50,19 @@ class GoogleDriveService {
       return true;
     }
 
-    this.initializationPromise = this._performInitialization();
+    this.initializationPromise = this._performInitialization()
+      .then(async () => {
+        // After initialization, try to authenticate automatically if not already authenticated
+        if (!this.isAuthenticated()) {
+          try {
+            await this.authenticate(true); // Silent authentication
+          } catch (error) {
+            apiLogger.warn('Silent authentication failed, will require user interaction', error);
+          }
+        }
+        return true;
+      });
+      
     return this.initializationPromise;
   }
 
@@ -330,52 +342,44 @@ Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authoriz
   }
 
   /**
-   * Authenticate user with Google Drive
+   * Authenticate with Google Drive
+   * @param {boolean} silent - If true, will attempt silent authentication without user interaction
    */
-  async authenticate() {
+  async authenticate(silent = true) {
     try {
-      await this.initialize();
-
-      const authInstance = this.gapi.auth2.getAuthInstance();
-      
-      if (!authInstance) {
-        throw new Error('Google Auth instance not available');
+      if (!this.gapi || !this.gapi.auth2) {
+        throw new Error('Google API not initialized');
       }
 
-      // Check if already signed in
-      if (authInstance.isSignedIn.get()) {
-        const currentUser = authInstance.currentUser.get();
-        this.accessToken = currentUser.getAuthResponse().access_token;
-        
-        apiLogger.info('User already authenticated with Google Drive');
-        return true;
+      const auth2 = this.gapi.auth2.getAuthInstance();
+      
+      if (!auth2) {
+        throw new Error('Google Auth2 not initialized');
       }
 
-      // Sign in user
-      apiLogger.info('Requesting Google Drive authentication');
-      const user = await authInstance.signIn({
-        prompt: 'select_account'
-      });
-      
-      this.accessToken = user.getAuthResponse().access_token;
-      
-      apiLogger.info('Google Drive authentication successful', {
-        hasAccessToken: !!this.accessToken
-      });
-      
+      // Always try silent authentication first
+      const googleUser = await auth2.signInSilently();
+      this.accessToken = googleUser.getAuthResponse().access_token;
+      apiLogger.info('Successfully authenticated with Google Drive');
       return true;
-
-    } catch (error) {
-      const errorDetails = {
-        name: error?.name || 'Unknown',
-        message: error?.message || 'No message',
-        code: error?.code || 'No code',
-        details: error?.details || 'No details',
-        stack: error?.stack || 'No stack trace',
-        stringified: error?.toString() || 'Cannot stringify error'
-      };
       
-      apiLogger.error('Google Drive authentication failed', { error: errorDetails });
+    } catch (error) {
+      // If silent auth fails and we're not in silent mode, show the sign-in popup
+      if (!silent && (error.error === 'popup_closed_by_user' || error.error === 'access_denied')) {
+        try {
+          const googleUser = await auth2.signIn({
+            prompt: 'select_account',
+          });
+          this.accessToken = googleUser.getAuthResponse().access_token;
+          apiLogger.info('Successfully authenticated with Google Drive after silent failure');
+          return true;
+        } catch (signInError) {
+          apiLogger.error('Failed to authenticate with Google Drive after silent failure', signInError);
+          throw signInError;
+        }
+      }
+      
+      apiLogger.error('Failed to authenticate with Google Drive', error);
       throw error;
     }
   }

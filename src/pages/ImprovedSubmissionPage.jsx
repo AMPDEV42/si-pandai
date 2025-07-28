@@ -47,6 +47,29 @@ const ImprovedSubmissionPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Google Drive state
+  const [isGoogleDriveEnabled, setIsGoogleDriveEnabled] = useState(false);
+  const [isCheckingGoogleDrive, setIsCheckingGoogleDrive] = useState(true);
+
+  // Check Google Drive status on mount
+  useEffect(() => {
+    const checkGoogleDriveStatus = async () => {
+      try {
+        const status = await googleDriveService.isAuthenticated();
+        setIsGoogleDriveEnabled(status);
+        setIsGoogleDriveAuthenticated(status);
+      } catch (error) {
+        console.error('Error checking Google Drive status:', error);
+        setIsGoogleDriveEnabled(false);
+        setIsGoogleDriveAuthenticated(false);
+      } finally {
+        setIsCheckingGoogleDrive(false);
+      }
+    };
+
+    checkGoogleDriveStatus();
+  }, []);
+
   // State management
   const [currentStep, setCurrentStep] = useState(STEPS.EMPLOYEE_SELECTION);
   const [submissionType, setSubmissionType] = useState(null);
@@ -60,7 +83,6 @@ const ImprovedSubmissionPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState({});
   const [isGoogleDriveAuthenticated, setIsGoogleDriveAuthenticated] = useState(false);
-  const [useGoogleDrive, setUseGoogleDrive] = useState(false);
   const [isTestingUpload, setIsTestingUpload] = useState(false);
 
   // Load submission type
@@ -253,6 +275,40 @@ const ImprovedSubmissionPage = () => {
     }
   };
 
+  // Check Google Drive status on mount
+  useEffect(() => {
+    const checkDriveStatus = async () => {
+      try {
+        const isConfigured = googleDriveService.isConfigured();
+        if (!isConfigured) {
+          console.log('Google Drive not configured');
+          return;
+        }
+        
+        // Initialize Google Drive service
+        await googleDriveService.initialize();
+        
+        // Check authentication status
+        const isAuthenticated = await googleDriveService.isAuthenticated();
+        setIsGoogleDriveAuthenticated(isAuthenticated);
+        
+        if (!isAuthenticated) {
+          // Try to authenticate silently
+          try {
+            await googleDriveService.authenticate(true);
+            setIsGoogleDriveAuthenticated(true);
+          } catch (authError) {
+            console.log('Silent authentication failed, user interaction required');
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing Google Drive:', error);
+      }
+    };
+
+    checkDriveStatus();
+  }, []);
+
   const handleTestGoogleDriveUpload = async () => {
     setIsTestingUpload(true);
 
@@ -437,12 +493,11 @@ const ImprovedSubmissionPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Google Drive Integration */}
-                <GoogleDriveAuth
-                  onAuthChange={(authenticated) => {
-                    setIsGoogleDriveAuthenticated(authenticated);
-                    setUseGoogleDrive(authenticated);
-                  }}
-                />
+                <div className="mb-6">
+                  <GoogleDriveAuth 
+                    onAuthChange={setIsGoogleDriveAuthenticated}
+                  />
+                </div>
 
                 {/* Test Upload Button */}
                 {isGoogleDriveAuthenticated && (
@@ -493,7 +548,7 @@ const ImprovedSubmissionPage = () => {
                     isUploading={uploadingFiles[`req-${index}`]}
                     submissionType={submissionType}
                     employeeName={selectedEmployee?.full_name}
-                    useGoogleDrive={useGoogleDrive}
+                    useGoogleDrive={isGoogleDriveEnabled}
                   />
                 ))}
               </CardContent>
