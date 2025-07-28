@@ -101,10 +101,11 @@ class SubmissionService {
 
       // Get user IDs for related data
       const userIds = [submission.user_id, submission.reviewed_by].filter(Boolean);
-      
+
       // Initialize default values
       let profiles = [];
-      
+      let employeeData = null;
+
       try {
         // Only fetch profiles if there are user IDs
         if (userIds.length > 0) {
@@ -117,16 +118,41 @@ class SubmissionService {
       } catch (e) {
         console.warn('Could not fetch profiles:', e.message);
       }
-      
+
+      // Try to get employee data based on NIP from submission
+      const nipFromSubmission = submission.nip ||
+                               (submission.personal_info && submission.personal_info.nip) ||
+                               (submission.data_pemohon && submission.data_pemohon.nip);
+
+      if (nipFromSubmission) {
+        try {
+          const { data: pegawaiData } = await supabase
+            .from('pegawai')
+            .select('*')
+            .eq('nip', nipFromSubmission.toString().trim())
+            .single();
+
+          if (pegawaiData) {
+            // Convert snake_case to camelCase for consistency
+            const formattedEmployeeData = {};
+            Object.keys(pegawaiData).forEach(key => {
+              const camelKey = key.replace(/_(\w)/g, (_, letter) => letter.toUpperCase());
+              formattedEmployeeData[camelKey] = pegawaiData[key];
+            });
+            employeeData = formattedEmployeeData;
+
+            console.log('Found employee data for NIP:', nipFromSubmission, employeeData);
+          }
+        } catch (e) {
+          console.warn('Could not fetch employee data for NIP:', nipFromSubmission, e.message);
+        }
+      }
+
       // Don't try to fetch from non-existent tables
       // Instead, use empty arrays as defaults
       const documents = [];
       const history = [];
       const notes = [];
-      
-      // If you want to check if tables exist first, you can use this pattern:
-      // const { data: tableExists } = await supabase.rpc('table_exists', { table_name: 'submission_documents' });
-      // But for now, we'll just use empty arrays
 
       // Process user data
       const userMap = new Map();
@@ -134,26 +160,167 @@ class SubmissionService {
         userMap.set(profile.id, profile);
       });
 
+      // Create comprehensive personal info by combining employee data, submission data, and profile data
+      const userProfile = userMap.get(submission.user_id);
+
+      // Format phone number helper
+      const formatPhoneNumber = (phone) => {
+        if (!phone) return '-';
+        const cleaned = ('' + phone).replace(/\D/g, '');
+        if (cleaned.startsWith('0')) {
+          return cleaned.replace(/^(\d{3})(\d{4})(\d{4,})$/, '$1-$2-$3');
+        }
+        if (cleaned.startsWith('62')) {
+          return cleaned.replace(/^(62)(\d{3})(\d{4})(\d{4,})$/, '+$1 $2-$3-$4');
+        }
+        return phone;
+      };
+
+      // Format date helper
+      const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        try {
+          const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+          if (isNaN(date.getTime())) return '-';
+          return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+          });
+        } catch (e) {
+          return '-';
+        }
+      };
+
+      // Format gender helper
+      const formatGender = (gender) => {
+        if (!gender) return '-';
+        const genderStr = String(gender).trim().toLowerCase();
+        const genderMap = {
+          'l': 'Laki-laki', 'p': 'Perempuan', 'm': 'Laki-laki', 'f': 'Perempuan',
+          'male': 'Laki-laki', 'female': 'Perempuan', 'laki-laki': 'Laki-laki',
+          'perempuan': 'Perempuan', 'pria': 'Laki-laki', 'wanita': 'Perempuan',
+          'lk': 'Laki-laki', 'pr': 'Perempuan', '1': 'Laki-laki', '2': 'Perempuan'
+        };
+        return genderMap[genderStr] || genderStr.charAt(0).toUpperCase() + genderStr.slice(1);
+      };
+
+      // Build comprehensive personalInfo from multiple sources
+      const personalInfo = {
+        // Basic Information - prioritize employee data, then submission data, then profile data
+        name: (employeeData?.namaLengkap ||
+              employeeData?.nama ||
+              submission.nama_pemohon ||
+              userProfile?.full_name ||
+              submission.personal_info?.name ||
+              'Tidak Diketahui').toString().trim(),
+
+        nip: (employeeData?.nip ||
+             nipFromSubmission ||
+             submission.personal_info?.nip ||
+             '-').toString().trim(),
+
+        email: (employeeData?.email ||
+               submission.email ||
+               userProfile?.email ||
+               submission.personal_info?.email ||
+               '-').toString().trim().toLowerCase(),
+
+        phone: formatPhoneNumber(
+          employeeData?.noHp ||
+          employeeData?.noTelepon ||
+          submission.no_telp ||
+          submission.personal_info?.phone ||
+          ''
+        ),
+
+        // Birth Information
+        tempatLahir: (employeeData?.tempatLahir ||
+                     submission.personal_info?.tempatLahir ||
+                     '-').toString().trim(),
+
+        tanggalLahir: formatDate(employeeData?.tanggalLahir ||
+                               submission.personal_info?.tanggalLahir ||
+                               null),
+
+        jenisKelamin: formatGender(employeeData?.jenisKelamin ||
+                                 submission.personal_info?.jenisKelamin ||
+                                 null),
+
+        // Employment Information
+        statusKepegawaian: (employeeData?.statusKepegawaian ||
+                           submission.personal_info?.statusKepegawaian ||
+                           '-').toString().trim(),
+
+        jenisJabatan: (employeeData?.jenisJabatan ||
+                      submission.personal_info?.jenisJabatan ||
+                      '-').toString().trim(),
+
+        pangkatGolongan: (employeeData?.pangkatGolongan ||
+                         (employeeData?.golongan ? `Golongan ${employeeData.golongan}` : null) ||
+                         submission.personal_info?.pangkatGolongan ||
+                         '-').toString().trim(),
+
+        tmt: formatDate(employeeData?.tmt ||
+                       submission.personal_info?.tmt ||
+                       null),
+
+        // Job Information
+        position: (employeeData?.jabatan ||
+                  employeeData?.namaJabatan ||
+                  submission.jabatan ||
+                  submission.personal_info?.position ||
+                  '-').toString().trim(),
+
+        unit: (employeeData?.unitKerja ||
+              employeeData?.instansi ||
+              submission.unit_kerja ||
+              userProfile?.unit_kerja ||
+              submission.personal_info?.unit ||
+              'Sekretariat Direktorat Jenderal Pembinaan Pelatihan Vokasi dan Produktivitas').toString().trim(),
+
+        pendidikanTerakhir: (employeeData?.pendidikanTerakhir ||
+                           submission.personal_info?.pendidikanTerakhir ||
+                           '-').toString().trim(),
+
+        // Address Information
+        alamat: (employeeData?.alamat ||
+                employeeData?.alamatLengkap ||
+                (employeeData?.alamatJalan ?
+                  `${employeeData.alamatJalan}, ${employeeData.kelurahan || ''}, ${employeeData.kecamatan || ''}, ${employeeData.kota || ''}, ${employeeData.provinsi || ''} ${employeeData.kodePos ? ', ' + employeeData.kodePos : ''}`.replace(/,\s*,/g, ',').replace(/,\s*$/, '') :
+                  null) ||
+                submission.personal_info?.alamat ||
+                '-').toString().trim(),
+
+        // Avatar URL
+        avatar_url: employeeData?.foto ||
+                   employeeData?.fotoProfile ||
+                   employeeData?.photoUrl ||
+                   submission.personal_info?.avatar_url ||
+                   null
+      };
+
       // Combine all data
       const result = {
         ...submission,
-        personalInfo: userMap.get(submission.user_id) || {
-          name: submission.nama_pemohon || 'Tidak Diketahui',
-          nip: submission.nip || '-',
-          position: submission.jabatan || '-',
-          unit: submission.unit_kerja || '-',
-          phone: submission.no_telp || '-',
-          email: submission.email || '-',
-        },
+        personalInfo,
         submitter: userMap.get(submission.user_id) || null,
         reviewer: submission.reviewed_by ? userMap.get(submission.reviewed_by) : null,
         documents: documents || [],
         history: history || [],
         notes: notes || [],
         requirements: submission.requirements || [],
-        checkedRequirements: submission.checked_requirements || []
+        checkedRequirements: submission.checked_requirements || [],
+        // Add employee data for debugging
+        _employeeData: employeeData,
+        _debug: {
+          nipFromSubmission,
+          foundEmployeeData: !!employeeData,
+          profileData: userProfile
+        }
       };
 
+      console.log('Complete submission data with employee info:', result);
       return { data: result, error: null };
     }, `getSubmissionById: ${id}`);
   }
