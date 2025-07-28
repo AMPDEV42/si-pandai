@@ -71,37 +71,16 @@ const SubmissionDetail = () => {
       // Personal info is now handled by the submission service
       // Just use the data that was already processed
       
-      // Ensure all required fields have default values
+      // The submission service already handles data transformation
+      // Just ensure we have proper category mapping
       const transformedData = {
         ...submissionData,
-        // Map created_at and updated_at to camelCase for consistency
         createdAt: submissionData.created_at,
         updatedAt: submissionData.updated_at,
-        // Map category if it exists, otherwise use submission type
-        category: submissionData.category || submissionData.submission_type || 'Umum',
-        personalInfo,
-        // Ensure all array fields are properly initialized
-        requirements: Array.isArray(submissionData.requirements) 
-          ? submissionData.requirements 
-          : (submissionData.requirements_data ? Object.values(submissionData.requirements_data) : []),
-        documents: Array.isArray(submissionData.documents) 
-          ? submissionData.documents 
-          : [],
-        checkedRequirements: Array.isArray(submissionData.checked_requirements) 
-          ? submissionData.checked_requirements 
-          : [],
-        history: Array.isArray(submissionData.history) 
-          ? submissionData.history 
-          : [],
-        notes: Array.isArray(submissionData.notes) 
-          ? submissionData.notes 
-          : (submissionData.review_notes ? [submissionData.review_notes] : [])
+        category: submissionData.category || submissionData.submission_type || 'Umum'
       };
-      
-      // Log the transformed data for debugging
-      console.log('Transformed submission data:', transformedData);
 
-      console.log('Transformed submission data:', transformedData);
+      console.log('Final submission data:', transformedData);
       setSubmission(transformedData);
       
     } catch (error) {
