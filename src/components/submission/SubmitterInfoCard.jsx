@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   User, Mail, Phone, Briefcase, Hash, MapPin, 
@@ -60,31 +61,65 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
 
   // Format date
   const formatDate = (dateString) => {
-    if (!dateString || dateString === '-') return '-';
+    if (!dateString || dateString === '-' || dateString === '0000-00-00') return 'Belum ada data';
+    
     try {
-      // Handle both string and Date objects
-      const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+      let date;
+      
+      // If already a Date object
+      if (dateString instanceof Date) {
+        date = dateString;
+      } 
+      // Handle ISO format (e.g., '2025-05-01')
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        date = new Date(dateString);
+      }
+      // Handle Indonesian date format (e.g., '01 Mei 2025')
+      else if (/^\d{1,2} [a-zA-Z]+ \d{4}$/.test(dateString)) {
+        const months = {
+          'Januari': 0, 'Februari': 1, 'Maret': 2, 'April': 3, 'Mei': 4, 'Juni': 5,
+          'Juli': 6, 'Agustus': 7, 'September': 8, 'Oktober': 9, 'November': 10, 'Desember': 11
+        };
+        
+        const [day, monthName, year] = dateString.split(' ');
+        const monthIndex = months[monthName];
+        
+        if (monthIndex === undefined) {
+          throw new Error('Invalid month name');
+        }
+        
+        date = new Date(year, monthIndex, parseInt(day, 10));
+      } 
+      // Try parsing as a date string
+      else {
+        date = new Date(dateString);
+      }
       
       // Check if date is valid
       if (isNaN(date.getTime())) {
         console.warn('Invalid date in SubmitterInfoCard:', dateString);
-        return '-';
+        return 'Format tanggal tidak valid';
       }
       
+      // Format the date in Indonesian locale
       return date.toLocaleDateString('id-ID', {
         day: '2-digit',
         month: 'long',
         year: 'numeric'
       });
+      
     } catch (e) {
       console.error('Error formatting date in SubmitterInfoCard:', dateString, e);
-      return '-';
+      return 'Format tanggal tidak valid';
     }
   };
 
   // Get field with fallback and formatting
   const getField = (key, defaultValue = '-', format = null) => {
     try {
+      // If key is not provided, return default value
+      if (!key) return defaultValue;
+      
       // Handle dot notation for nested fields
       const keys = Array.isArray(key) ? key : [key];
       let value = null;
@@ -97,12 +132,32 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
 
       // Try to find the first non-null value from the keys array
       for (const k of keys) {
-        const nestedValue = k.split('.').reduce((obj, k) =>
-          (obj && obj[k] !== undefined) ? obj[k] : null, personalInfo);
+        if (!k || k.trim() === '') continue;
+        
+        try {
+          // Handle direct property access
+          if (personalInfo[k] !== undefined && personalInfo[k] !== null && personalInfo[k] !== '') {
+            value = personalInfo[k];
+            if (value !== null && value !== undefined && value !== '') {
+              break;
+            }
+          }
+          
+          // Handle nested properties with dot notation
+          if (typeof k === 'string' && k.includes('.')) {
+            const nestedValue = k.split('.').reduce((obj, k) => {
+              if (obj === null || obj === undefined) return null;
+              return obj[k];
+            }, personalInfo);
 
-        if (nestedValue !== null && nestedValue !== undefined && nestedValue !== '' && nestedValue !== 'null') {
-          value = nestedValue;
-          break;
+            if (nestedValue !== null && nestedValue !== undefined && nestedValue !== '' && nestedValue !== 'null') {
+              value = nestedValue;
+              if (value) break;
+            }
+          }
+        } catch (error) {
+          console.warn(`Error accessing field '${k}':`, error);
+          continue;
         }
       }
 
@@ -155,111 +210,228 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
 
   // Field definitions with proper schema
   const fields = [
+    // Section 1: Basic Information
     {
       label: 'Nama Lengkap',
       key: ['name', 'namaLengkap', 'nama'],
       type: FieldType.TEXT,
-      icon: <UserIcon className="w-4 h-4" />,
+      icon: <UserIcon className="w-4 h-4 text-muted-foreground" />,
       colSpan: 2,
       copyable: true,
-      defaultValue: 'Tidak Diketahui'
+      className: 'border-t border-white/10 pt-4',
+      render: (values) => ({
+        name: values.name || values.namaLengkap || values.nama || 'Tidak Diketahui',
+        className: 'text-lg font-semibold text-white'
+      })
     },
     {
       label: 'NIP',
       key: ['nip', 'nomorIndukPegawai'],
       type: FieldType.TEXT,
-      icon: <Tag className="w-4 h-4" />,
+      icon: <Tag className="w-4 h-4 text-muted-foreground" />,
       copyable: true,
-      defaultValue: '-'
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.nip || values.nomorIndukPegawai || '-',
+        className: 'text-sm text-gray-300'
+      })
+    },
+    
+    // Section 2: Contact Information
+    {
+      label: 'Informasi Kontak',
+      type: 'section-header',
+      colSpan: 2,
+      className: 'border-t border-white/10 pt-4 mt-2'
     },
     {
       label: 'Email',
       key: 'email',
       type: FieldType.EMAIL,
-      icon: <Mail className="w-4 h-4" />,
+      icon: <Mail className="w-4 h-4 text-muted-foreground" />,
       copyable: true,
-      defaultValue: '-'
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.email || '-',
+        className: 'text-white'
+      })
     },
     {
       label: 'No. Telepon',
       key: ['phone', 'noHp', 'noTelepon'],
       type: FieldType.PHONE,
-      icon: <Phone className="w-4 h-4" />,
+      icon: <Phone className="w-4 h-4 text-muted-foreground" />,
       copyable: true,
-      defaultValue: '-'
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.phone || values.noHp || values.noTelepon || '-',
+        className: 'text-white'
+      })
+    },
+    
+    // Section 3: Personal Information
+    {
+      label: 'Informasi Pribadi',
+      type: 'section-header',
+      colSpan: 2,
+      className: 'border-t border-white/10 pt-4 mt-2'
     },
     { 
       label: 'Tempat, Tanggal Lahir',
       key: ['tempatLahir', 'tanggalLahir'],
       type: FieldType.CUSTOM,
-      icon: <Cake className="w-4 h-4" />,
+      icon: <Cake className="w-4 h-4 text-muted-foreground" />,
       colSpan: 2,
-      render: (values) => (
-        <div className="space-y-1">
-          <div>{values.tempatLahir || '-'}</div>
-          <div className="text-sm text-muted-foreground">
-            {values.tanggalLahir ? formatDate(values.tanggalLahir) : '-'}
+      className: 'pt-1',
+      render: (values) => ({
+        name: (
+          <div className="space-y-1">
+            <div className="text-white">{values.tempatLahir || '-'}</div>
+            <div className="text-sm text-gray-300">
+              {values.tanggalLahir ? formatDate(values.tanggalLahir) : '-'}
+            </div>
           </div>
-        </div>
-      )
+        ),
+        className: ''
+      })
     },
     { 
       label: 'Jenis Kelamin',
       key: 'jenisKelamin',
       type: FieldType.TEXT,
-      icon: <UserIcon className="w-4 h-4" />
+      icon: <UserIcon className="w-4 h-4 text-muted-foreground" />,
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.jenisKelamin || '-',
+        className: 'text-white'
+      })
+    },
+    
+    // Section 4: Employment Information
+    {
+      label: 'Informasi Kepegawaian',
+      type: 'section-header',
+      colSpan: 2,
+      className: 'border-t border-white/10 pt-4 mt-2'
     },
     { 
       label: 'Status Kepegawaian',
       key: 'statusKepegawaian',
       type: FieldType.TEXT,
-      icon: <UserCheckIcon className="w-4 h-4" />
+      icon: <UserCheckIcon className="w-4 h-4 text-muted-foreground" />,
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.statusKepegawaian || '-',
+        className: 'text-white'
+      })
     },
     { 
       label: 'Pangkat/Golongan',
       key: 'pangkatGolongan',
       type: FieldType.TEXT,
-      icon: <Award className="w-4 h-4" />
+      icon: <Award className="w-4 h-4 text-muted-foreground" />,
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.pangkatGolongan || '-',
+        className: 'text-white'
+      })
     },
     { 
       label: 'TMT',
-      key: 'tmt',
+      key: ['tmt', 'tmtJabatan', 'jabatan.tmt'],
       type: FieldType.DATE,
-      icon: <CalendarIcon className="w-4 h-4" />,
-      format: 'date'
+      icon: <CalendarIcon className="w-4 h-4 text-muted-foreground" />,
+      className: 'pt-1',
+      render: (values) => {
+        const tmt = values.tmt || values.tmtJabatan || values['jabatan.tmt'];
+        const formattedDate = tmt ? formatDate(tmt) : 'Belum ada data';
+        return {
+          name: formattedDate === 'Belum ada data' ? (
+            <span className="text-gray-400">{formattedDate}</span>
+          ) : (
+            formattedDate
+          ),
+          className: 'text-white'
+        };
+      }
+    },
+    
+    // Section 5: Position Information
+    {
+      label: 'Informasi Jabatan',
+      type: 'section-header',
+      colSpan: 2,
+      className: 'border-t border-white/10 pt-4 mt-2'
+    },
+    {
+      label: 'Jenis Jabatan',
+      key: ['jenisJabatan', 'jabatan.jenis'],
+      type: FieldType.TEXT,
+      icon: <UserCheck className="w-4 h-4 text-muted-foreground" />,
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.jenisJabatan || values['jabatan.jenis'] || 'Belum ada data',
+        className: 'text-white'
+      })
     },
     {
       label: 'Jabatan',
-      key: ['position', 'jabatan', 'namaJabatan'],
+      key: ['jabatan', 'position', 'jabatan.nama'],
       type: FieldType.TEXT,
-      icon: <Briefcase className="w-4 h-4" />,
+      icon: <Briefcase className="w-4 h-4 text-muted-foreground" />,
       colSpan: 2,
       copyable: true,
-      defaultValue: '-'
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.jabatan?.nama || values.position || 'Belum ada data',
+        className: 'text-white'
+      })
     },
     {
       label: 'Unit Kerja',
       key: ['unit', 'unitKerja', 'instansi'],
       type: FieldType.TEXT,
-      icon: <Building2 className="w-4 h-4" />,
+      icon: <Building2 className="w-4 h-4 text-muted-foreground" />,
       colSpan: 2,
-      defaultValue: 'Sekretariat Direktorat Jenderal Pembinaan Pelatihan Vokasi dan Produktivitas',
-      copyable: true
+      copyable: true,
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.unit || values.unitKerja || values.instansi || 'Sekretariat Direktorat Jenderal Pembinaan Pelatihan Vokasi dan Produktivitas',
+        className: 'text-white'
+      })
+    },
+    
+    // Section 6: Additional Information
+    {
+      label: 'Informasi Tambahan',
+      type: 'section-header',
+      colSpan: 2,
+      className: 'border-t border-white/10 pt-4 mt-2'
     },
     { 
       label: 'Pendidikan Terakhir',
       key: 'pendidikanTerakhir',
       type: FieldType.TEXT,
-      icon: <Book className="w-4 h-4" />,
-      colSpan: 2
+      icon: <Book className="w-4 h-4 text-muted-foreground" />,
+      colSpan: 2,
+      className: 'pt-1',
+      render: (values) => ({
+        name: values.pendidikanTerakhir || '-',
+        className: 'text-white'
+      })
     },
     { 
       label: 'Alamat',
       key: 'alamat',
       type: FieldType.TEXT,
-      icon: <MapPinIcon className="w-4 h-4" />,
+      icon: <MapPinIcon className="w-4 h-4 text-muted-foreground" />,
       colSpan: 2,
-      copyable: true
+      copyable: true,
+      className: 'pt-1 pb-2',
+      render: (values) => ({
+        name: values.alamat || '-',
+        className: 'text-white whitespace-pre-line'
+      })
     }
   ].map(field => ({
     ...fieldSchema,
@@ -270,30 +442,41 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
 
   // Get field value with proper formatting
   const getFieldValue = (field) => {
+    if (!field) return '-';
+    
     try {
-      // Handle custom render function
-      if (field.render) {
-        const values = field.keys.reduce((acc, key) => ({
-          ...acc,
-          [key]: getField(key, field.defaultValue || '-', field.format)
-        }), {});
-        return field.render(values);
+      // If field has a direct value, return it
+      if ('value' in field) {
+        return field.value !== undefined ? field.value : '-';
       }
-
-      // Handle single value
-      const value = getField(field.keys[0], field.defaultValue || '-', field.format);
       
-      // Format based on type
-      switch (field.type) {
-        case FieldType.DATE:
-          return formatDate(value);
-        case FieldType.PHONE:
-          return formatPhone(value);
-        case FieldType.EMAIL:
-          return value;
-        default:
-          return value;
+      // Get the raw field value
+      const value = getField(field.key, field.defaultValue, field.format);
+      
+      // If we have a value, format it based on type
+      if (value && value !== '-') {
+        switch (field.type) {
+          case FieldType.DATE:
+            return formatDate(value);
+          case FieldType.PHONE:
+            return formatPhone(value);
+          case FieldType.EMAIL:
+            return value;
+          default:
+            return value;
+        }
       }
+      
+      // If we have a render function, use it with the personalInfo
+      if (field.render) {
+        const rendered = field.render(personalInfo || {});
+        if (rendered !== undefined && rendered !== null) {
+          return rendered;
+        }
+      }
+      
+      // Return default value if nothing else works
+      return field.defaultValue || '-';
     } catch (error) {
       console.error(`Error getting value for ${field.label}:`, error);
       return '-';
@@ -302,15 +485,52 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
 
   // Render field value based on its type
   const renderFieldValue = (field) => {
+    // Handle section headers first
+    if (field.type === 'section-header') {
+      return (
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+          {field.label}
+        </h3>
+      );
+    }
+    
+    // Get the raw value for this field
     const value = getFieldValue(field);
     const isCopied = copiedField === field.key;
+    
+    // Handle custom rendered fields
+    if (field.render) {
+      try {
+        const rendered = field.render(personalInfo || {});
+        
+        // If render returns an object with name and className
+        if (rendered && typeof rendered === 'object' && 'name' in rendered) {
+          return (
+            <div className={rendered.className || ''}>
+              {rendered.name}
+            </div>
+          );
+        }
+        
+        // If render returns a React element or string directly
+        return rendered || <span className="text-gray-400">-</span>;
+      } catch (error) {
+        console.error('Error rendering field:', field.label, error);
+        return <span className="text-gray-400">-</span>;
+      }
+    }
+    
+    // Handle empty values
+    if (!value || value === '-' || value === 'Belum ada data') {
+      return <span className="text-gray-400">-</span>;
+    }
     
     // Handle email fields
     if (field.type === FieldType.EMAIL) {
       return (
         <a 
           href={`mailto:${value}`} 
-          className="hover:underline inline-flex items-center gap-1 text-blue-500"
+          className="hover:underline inline-flex items-center gap-1 text-blue-300 font-medium hover:text-blue-200"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -329,7 +549,7 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
         <div className="flex items-center gap-2">
           <a 
             href={`tel:${value}`} 
-            className="hover:underline inline-flex items-center gap-1"
+            className="hover:underline inline-flex items-center gap-1 font-medium text-white hover:text-gray-200"
           >
             {value}
           </a>
@@ -337,71 +557,75 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
       );
     }
     
-    // Handle custom rendered fields
-    if (field.render) {
-      return value;
-    }
-    
     // Default text field
-    return (
-      <span className={value === '-' ? 'text-muted-foreground' : ''}>
-        {value}
-      </span>
-    );
+    return <span className="text-white">{value}</span>;
   };
 
   return (
-    <Card className="border border-gray-200 dark:border-gray-800 bg-card text-card-foreground shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <UserCircle className="w-5 h-5" />
-          <span>Informasi Pegawai</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {fields.map((field, index) => {
-            const value = getFieldValue(field);
-            const isCopied = copiedField === field.key;
-            
-            return (
-              <div 
-                key={index} 
-                className={`space-y-1 ${field.colSpan === 2 ? 'col-span-2' : ''} ${
-                  field.copyable ? 'group relative' : ''
-                }`}
-              >
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  {field.icon}
-                  <span>{field.label}</span>
-                  {field.copyable && value !== '-' && (
-                    <button 
-                      onClick={() => handleCopy(value, field.label)}
-                      className={`transition-opacity ${
-                        isCopied 
-                          ? 'text-green-500' 
-                          : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'
-                      }`}
-                      title={isCopied ? 'Tersalin!' : 'Salin ke clipboard'}
-                      disabled={isCopied}
-                    >
-                      {isCopied ? (
-                        <Check className="w-3.5 h-3.5" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+    >
+      <Card className="glass-effect border-white/20">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <UserCircle className="w-5 h-5" />
+            <span>Informasi Pegawai</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {fields.map((field, index) => {
+              const value = getFieldValue(field);
+              const isCopied = copiedField === field.key;
+              
+              // Skip rendering if this is a section header without a value
+              if (field.type === 'section-header' && !value) {
+                return null;
+              }
+              
+              return (
+                <div 
+                  key={index} 
+                  className={`${field.className || ''} ${
+                    field.colSpan === 2 ? 'col-span-2' : ''
+                  } ${field.copyable ? 'group relative' : ''}`}
+                >
+                  {field.type !== 'section-header' && (
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      {field.icon}
+                      <span>{field.label}</span>
+                      {field.copyable && value !== '-' && value !== 'Belum ada data' && (
+                        <button 
+                          onClick={() => handleCopy(value, field.label)}
+                          className={`transition-opacity ${
+                            isCopied 
+                              ? 'text-green-400' 
+                              : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white'
+                          }`}
+                          title={isCopied ? 'Tersalin!' : 'Salin ke clipboard'}
+                          disabled={isCopied}
+                        >
+                          {isCopied ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       )}
-                    </button>
+                    </div>
                   )}
+                  <div className={`${field.type !== 'section-header' ? 'pl-6 mt-0.5' : ''} break-words`}>
+                    {renderFieldValue(field)}
+                  </div>
                 </div>
-                <div className="font-medium pl-6 break-words">
-                  {renderFieldValue(field)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 
