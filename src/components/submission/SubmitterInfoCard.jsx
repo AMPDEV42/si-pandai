@@ -3,7 +3,17 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User } from 'lucide-react';
 
-const SubmitterInfoCard = ({ personalInfo }) => {
+const SubmitterInfoCard = ({ personalInfo = {} }) => {
+  // Provide default values for all fields
+  const {
+    name = 'Tidak Diketahui',
+    nip = '-',
+    position = '-',
+    unit = '-',
+    phone = '-',
+    email = '-',
+  } = personalInfo || {};
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -22,29 +32,29 @@ const SubmitterInfoCard = ({ personalInfo }) => {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-400">Nama Lengkap</p>
-                <p className="text-white font-medium">{personalInfo.name}</p>
+                <p className="text-white font-medium">{name}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-400">NIP</p>
-                <p className="text-white font-medium">{personalInfo.nip}</p>
+                <p className="text-white font-medium">{nip}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-400">Jabatan</p>
-                <p className="text-white font-medium">{personalInfo.position}</p>
+                <p className="text-white font-medium">{position}</p>
               </div>
             </div>
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-400">Unit Kerja</p>
-                <p className="text-white font-medium">{personalInfo.unit || '-'}</p>
+                <p className="text-white font-medium">{unit}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-400">No. Telepon</p>
-                <p className="text-white font-medium">{personalInfo.phone || '-'}</p>
+                <p className="text-white font-medium">{phone}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-400">Email</p>
-                <p className="text-white font-medium">{personalInfo.email || '-'}</p>
+                <p className="text-white font-medium">{email}</p>
               </div>
             </div>
           </div>

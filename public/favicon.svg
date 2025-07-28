@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="64" cy="64" r="60" fill="#2563EB"/>
+  
+  <!-- Document Icon -->
+  <path d="M84 44H80V40H76V44H72V48H76V52H80V48H84V44Z" fill="white"/>
+  <path d="M56 40H44V48H56V40Z" fill="white"/>
+  <path d="M56 56H44V64H56V56Z" fill="white"/>
+  <path d="M76 56H60V64H76V56Z" fill="white"/>
+  <path d="M84 68H44V76H84V68Z" fill="white"/>
+  <path d="M84 84H44V92H84V84Z" fill="white"/>
+</svg>

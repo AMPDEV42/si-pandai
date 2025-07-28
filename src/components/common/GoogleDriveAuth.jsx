@@ -92,12 +92,42 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
     try {
       setIsAuthenticating(true);
       setError(null);
+      setIsDomainError(false);
 
       apiLogger.info('Starting Google Drive authentication');
-      await googleDriveService.authenticate();
+      
+      // Check configuration first
+      if (!isConfigured) {
+        throw new Error('Google Drive belum dikonfigurasi dengan benar. Periksa konfigurasi environment variables.');
+      }
+
+      // Initialize Google Drive service
+      try {
+        await googleDriveService.initialize();
+      } catch (initError) {
+        apiLogger.error('Google Drive initialization failed', initError);
+        
+        // Check for domain authorization issues
+        if (initError.message.includes('origin') || 
+            initError.message.includes('domain') || 
+            initError.message.includes('not allowed') ||
+            initError.error === 'idpiframe_initialization_failed') {
+          throw new Error('DOMAIN_AUTH_ERROR: Domain tidak diotorisasi. Pastikan domain ini ditambahkan di Google Cloud Console.');
+        }
+        throw initError;
+      }
+
+      // Proceed with authentication
+      const authResult = await googleDriveService.authenticate();
+      
+      if (!authResult) {
+        throw new Error('Autentikasi dibatalkan atau gagal');
+      }
       
       setIsAuthenticated(true);
       onAuthChange(true);
+      setError(null);
+      setIsDomainError(false);
 
       apiLogger.info('Google Drive authentication successful');
 
@@ -112,13 +142,28 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
         errorMessage = 'Popup diblokir browser. Pastikan popup diizinkan untuk website ini.';
       } else if (error.message.includes('access_denied')) {
         errorMessage = 'Akses ditolak. Silakan berikan izin untuk mengakses Google Drive.';
-      } else if (error.message.includes('origin') || error.message.includes('domain') || error.message.includes('Domain authorization')) {
-        errorMessage = 'Domain tidak diotorisasi dalam Google Cloud Console.';
+      } else if (error.message.includes('DOMAIN_AUTH_ERROR') || 
+                error.message.includes('origin') || 
+                error.message.includes('domain') || 
+                error.message.includes('not allowed') ||
+                error.message.includes('Domain authorization') ||
+                error.error === 'idpiframe_initialization_failed') {
+        errorMessage = `Domain ${window.location.origin} tidak diotorisasi.\n\n` +
+                     '1. Buka Google Cloud Console\n' +
+                     '2. Buka menu "APIs & Services" > "Credentials"\n' +
+                     '3. Edit OAuth 2.0 Client ID yang digunakan\n' +
+                     `4. Tambahkan "${window.location.origin}" ke Authorized JavaScript origins\n` +
+                     '5. Simpan perubahan dan tunggu 5-10 menit';
         isDomain = true;
       } else if (error.message.includes('quota')) {
         errorMessage = 'Quota API tercapai. Coba lagi dalam beberapa saat.';
+      } else if (error.message.includes('not initialized')) {
+        errorMessage = 'Google Drive service belum siap. Silakan refresh halaman dan coba lagi.';
+      } else if (error.message.includes('gapi is not defined') || 
+                error.message.includes('gapi.client is not defined')) {
+        errorMessage = 'Google API gagal dimuat. Pastikan koneksi internet stabil dan coba lagi.';
       } else {
-        errorMessage = error.message;
+        errorMessage = error.message || 'Terjadi kesalahan yang tidak diketahui';
       }
 
       setError(errorMessage);

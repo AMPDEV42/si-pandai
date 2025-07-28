@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -14,6 +14,7 @@ import VerificationActions from '@/components/submission/VerificationActions';
 import HistoryTimeline from '@/components/submission/HistoryTimeline';
 import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { submissionService } from '../services/submissionService';
+import { supabase } from '../lib/customSupabaseClient';
 
 const SubmissionDetail = () => {
   const { id } = useParams();
@@ -24,40 +25,79 @@ const SubmissionDetail = () => {
   const [loading, setLoading] = useState(false);
   const [actionNotes, setActionNotes] = useState('');
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/');
-      return;
-    }
+  const fetchSubmission = useCallback(async () => {
+    if (!user || !id) return;
 
-    const savedSubmissions = localStorage.getItem('sipandai_submissions');
-    if (savedSubmissions) {
-      const allSubmissions = JSON.parse(savedSubmissions);
-      const foundSubmission = allSubmissions.find(sub => sub.id === parseInt(id));
+    try {
+      setLoading(true);
       
-      if (!foundSubmission) {
-        toast({
-          title: "Usulan tidak ditemukan",
-          description: "Usulan yang Anda cari tidak ditemukan",
-          variant: "destructive"
-        });
-        navigate(user.role === 'admin-unit' ? '/admin-unit' : '/admin-master');
-        return;
+      // Use the submission service to get the data
+      const { data: submissionData, error } = await submissionService.getSubmissionById(id);
+      
+      if (error) throw error;
+      if (!submissionData) throw new Error('Submission not found');
+
+      // Check if the user has permission to view this submission
+      if (user.role === 'admin-unit' && submissionData.unit_kerja !== user.unit_kerja) {
+        throw new Error('Unauthorized access to this submission');
       }
 
-      if (user.role === 'admin-unit' && foundSubmission.submittedBy !== user.id) {
-        toast({
-          title: "Akses ditolak",
-          description: "Anda tidak memiliki akses ke usulan ini",
-          variant: "destructive"
-        });
-        navigate('/admin-unit');
-        return;
-      }
+      // Get submitter info from either the profile or submission data
+      const submitterInfo = submissionData.submitter || {
+        full_name: submissionData.nama_pemohon || 'Tidak Diketahui',
+        nip: submissionData.nip || '-',
+        position: submissionData.jabatan || '-',
+        unit_kerja: submissionData.unit_kerja || '-',
+        phone: submissionData.no_telp || '-',
+        email: submissionData.email || '-',
+      };
 
-      setSubmission(foundSubmission);
+      // Ensure all required fields have default values
+      const transformedData = {
+        ...submissionData,
+        personalInfo: {
+          name: submitterInfo.full_name || submitterInfo.name || 'Tidak Diketahui',
+          nip: submitterInfo.nip || '-',
+          position: submitterInfo.position || submitterInfo.jabatan || '-',
+          unit: submitterInfo.unit_kerja || submitterInfo.unit || '-',
+          phone: submitterInfo.phone || submitterInfo.no_telp || '-',
+          email: submitterInfo.email || '-',
+          avatar_url: submitterInfo.avatar_url || null
+        },
+        requirements: Array.isArray(submissionData.requirements) ? submissionData.requirements : [],
+        documents: Array.isArray(submissionData.documents) ? submissionData.documents : [],
+        checkedRequirements: Array.isArray(submissionData.checkedRequirements) 
+          ? submissionData.checkedRequirements 
+          : [],
+        history: Array.isArray(submissionData.history) ? submissionData.history : [],
+        notes: Array.isArray(submissionData.notes) ? submissionData.notes : []
+      };
+
+      console.log('Transformed submission data:', transformedData);
+      setSubmission(transformedData);
+      
+    } catch (error) {
+      console.error('Error fetching submission:', error);
+      
+      toast({
+        title: "Gagal memuat detail usulan",
+        description: error.message === 'Unauthorized access to this submission' 
+          ? 'Anda tidak memiliki akses ke usulan ini' 
+          : 'Gagal memuat data usulan. Silakan coba lagi.',
+        variant: "destructive"
+      });
+      
+      // Redirect based on user role
+      const redirectPath = user?.role === 'admin-unit' ? '/pengajuan/riwayat-admin' : '/pengajuan/riwayat';
+      navigate(redirectPath);
+    } finally {
+      setLoading(false);
     }
   }, [id, user, navigate, toast]);
+
+  useEffect(() => {
+    fetchSubmission();
+  }, [fetchSubmission]);
 
   const handleStatusUpdate = async (newStatus) => {
     if (!actionNotes.trim() && newStatus !== 'approved') {

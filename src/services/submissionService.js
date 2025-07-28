@@ -89,38 +89,72 @@ class SubmissionService {
    */
   async getSubmissionById(id) {
     return withErrorHandling(async () => {
-      const result = await supabase
+      // First, get the submission data
+      const { data: submission, error: submissionError } = await supabase
         .from('submissions')
         .select('*')
         .eq('id', id)
         .single();
 
-      if (result.data) {
-        // Manually fetch related data
-        const userIds = [result.data.user_id, result.data.reviewed_by].filter(Boolean);
+      if (submissionError) throw submissionError;
+      if (!submission) return { data: null, error: { message: 'Submission not found' } };
 
-        const [profilesResult, documentsResult] = await Promise.all([
-          userIds.length > 0 ? supabase
+      // Get user IDs for related data
+      const userIds = [submission.user_id, submission.reviewed_by].filter(Boolean);
+      
+      // Initialize default values
+      let profiles = [];
+      
+      try {
+        // Only fetch profiles if there are user IDs
+        if (userIds.length > 0) {
+          const { data: profilesData } = await supabase
             .from('profiles')
-            .select('id, full_name, email, unit_kerja, role')
-            .in('id', userIds) : { data: [] },
-          supabase
-            .from('submission_documents')
-            .select('id, file_name, file_size, file_type, file_url, uploaded_at')
-            .eq('submission_id', id)
-        ]);
-
-        const profileMap = Object.fromEntries((profilesResult.data || []).map(p => [p.id, p]));
-
-        result.data = {
-          ...result.data,
-          submitter: profileMap[result.data.user_id] || null,
-          reviewer: profileMap[result.data.reviewed_by] || null,
-          documents: documentsResult.data || []
-        };
+            .select('*')
+            .in('id', userIds);
+          profiles = profilesData || [];
+        }
+      } catch (e) {
+        console.warn('Could not fetch profiles:', e.message);
       }
+      
+      // Don't try to fetch from non-existent tables
+      // Instead, use empty arrays as defaults
+      const documents = [];
+      const history = [];
+      const notes = [];
+      
+      // If you want to check if tables exist first, you can use this pattern:
+      // const { data: tableExists } = await supabase.rpc('table_exists', { table_name: 'submission_documents' });
+      // But for now, we'll just use empty arrays
 
-      return result;
+      // Process user data
+      const userMap = new Map();
+      profiles.forEach(profile => {
+        userMap.set(profile.id, profile);
+      });
+
+      // Combine all data
+      const result = {
+        ...submission,
+        personalInfo: userMap.get(submission.user_id) || {
+          name: submission.nama_pemohon || 'Tidak Diketahui',
+          nip: submission.nip || '-',
+          position: submission.jabatan || '-',
+          unit: submission.unit_kerja || '-',
+          phone: submission.no_telp || '-',
+          email: submission.email || '-',
+        },
+        submitter: userMap.get(submission.user_id) || null,
+        reviewer: submission.reviewed_by ? userMap.get(submission.reviewed_by) : null,
+        documents: documents || [],
+        history: history || [],
+        notes: notes || [],
+        requirements: submission.requirements || [],
+        checkedRequirements: submission.checked_requirements || []
+      };
+
+      return { data: result, error: null };
     }, `getSubmissionById: ${id}`);
   }
 

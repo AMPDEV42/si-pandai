@@ -63,12 +63,32 @@ const EmployeeDetailPage = () => {
         throw result.error;
       }
 
-      setEmployee(result.data.employee);
-      setSubmissions(result.data.submissions);
+      // Ensure all required fields have default values
+      const employeeWithDefaults = {
+        full_name: 'Nama tidak tersedia',
+        nip: 'NIP tidak tersedia',
+        email: 'Email tidak tersedia',
+        noHp: 'Tidak ada data',
+        tempatLahir: 'Tidak ada data',
+        tanggalLahir: null,
+        jenisKelamin: 'Tidak ada data',
+        alamat: 'Tidak ada data',
+        statusKepegawaian: 'Tidak ada data',
+        jenisJabatan: 'Tidak ada data',
+        pendidikanTerakhir: 'Tidak ada data',
+        unitKerja: 'Tidak ada data',
+        tmt: null,
+        pangkatGolongan: 'Tidak ada data',
+        ...result.data.employee // Spread the actual data to override defaults
+      };
+
+      setEmployee(employeeWithDefaults);
+      setSubmissions(result.data.submissions || []);
 
       apiLogger.info('Employee detail loaded', {
         employeeId,
-        submissionsCount: result.data.submissions.length
+        employeeName: employeeWithDefaults.full_name,
+        submissionsCount: result.data.submissions?.length || 0
       });
 
     } catch (err) {
@@ -77,7 +97,7 @@ const EmployeeDetailPage = () => {
 
       toast({
         title: 'Error',
-        description: 'Gagal memuat data pegawai',
+        description: 'Gagal memuat data pegawai: ' + (err.message || 'Terjadi kesalahan'),
         variant: 'destructive'
       });
     } finally {
@@ -300,14 +320,14 @@ const EmployeeDetailPage = () => {
                   <Mail className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm">{employee.email || 'Tidak ada data'}</p>
+                    <p className="text-sm break-all">{employee.email}</p>
                   </div>
                 </div>
                 <div className="flex items-start">
                   <Phone className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">No. HP</p>
-                    <p className="text-sm">{employee.noHp || 'Tidak ada data'}</p>
+                    <p className="text-sm">{employee.noHp}</p>
                   </div>
                 </div>
                 <div className="flex items-start">
@@ -315,7 +335,7 @@ const EmployeeDetailPage = () => {
                   <div>
                     <p className="text-sm font-medium">Tempat, Tanggal Lahir</p>
                     <p className="text-sm">
-                      {employee.tempatLahir || 'Tidak ada data'}, 
+                      {employee.tempatLahir}, 
                       {employee.tanggalLahir ? new Date(employee.tanggalLahir).toLocaleDateString('id-ID', {
                         day: 'numeric',
                         month: 'long',
@@ -328,14 +348,18 @@ const EmployeeDetailPage = () => {
                   <Heart className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">Jenis Kelamin</p>
-                    <p className="text-sm">{employee.jenisKelamin || 'Tidak ada data'}</p>
+                    <p className="text-sm">
+                      {employee.jenisKelamin === 'L' ? 'Laki-laki' : 
+                       employee.jenisKelamin === 'P' ? 'Perempuan' : 
+                       employee.jenisKelamin}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start">
                   <Home className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">Alamat</p>
-                    <p className="text-sm whitespace-pre-line">{employee.alamat || 'Tidak ada data'}</p>
+                    <p className="text-sm whitespace-pre-line">{employee.alamat}</p>
                   </div>
                 </div>
               </CardContent>

@@ -84,6 +84,28 @@ class EmployeeService {
         throw employeeResult.error;
       }
 
+      // Transform employee data to match component's expected format
+      const employeeData = employeeResult.data;
+      const transformedEmployee = {
+        id: employeeData.id,
+        full_name: employeeData.nama || employeeData.full_name || employeeData.name || 'N/A',
+        nip: employeeData.nip || 'N/A',
+        email: employeeData.email || 'N/A',
+        noHp: employeeData.no_hp || employeeData.noHp || employeeData.phone || 'Tidak ada data',
+        tempatLahir: employeeData.tempat_lahir || employeeData.tempatLahir || 'Tidak ada data',
+        tanggalLahir: employeeData.tanggal_lahir || employeeData.tanggalLahir,
+        jenisKelamin: employeeData.jenis_kelamin || employeeData.jenisKelamin || 'Tidak ada data',
+        alamat: employeeData.alamat || 'Tidak ada data',
+        statusKepegawaian: employeeData.status_kepegawaian || employeeData.statusKepegawaian || 'Tidak ada data',
+        jenisJabatan: employeeData.jenis_jabatan || employeeData.jenisJabatan || 'Tidak ada data',
+        pendidikanTerakhir: employeeData.pendidikan_terakhir || employeeData.pendidikanTerakhir || 'Tidak ada data',
+        unitKerja: employeeData.unit_kerja || employeeData.unitKerja || employeeData.unit || 'Tidak ada data',
+        tmt: employeeData.tmt,
+        pangkatGolongan: employeeData.pangkat_golongan || employeeData.pangkatGolongan || 'Tidak ada data',
+        created_at: employeeData.created_at,
+        updated_at: employeeData.updated_at
+      };
+
       let submissionsWithProfiles = [];
 
       // Manually fetch submitter profiles if submissions exist
@@ -113,7 +135,7 @@ class EmployeeService {
 
       return {
         data: {
-          employee: employeeResult.data,
+          employee: transformedEmployee,  // Use the transformed employee data
           submissions: submissionsWithProfiles
         },
         error: null
