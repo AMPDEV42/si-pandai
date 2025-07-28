@@ -228,17 +228,18 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
       icon: <CalendarIcon className="w-4 h-4" />,
       format: 'date'
     },
-    { 
+    {
       label: 'Jabatan',
-      key: 'position',
+      key: ['position', 'jabatan', 'namaJabatan'],
       type: FieldType.TEXT,
       icon: <Briefcase className="w-4 h-4" />,
       colSpan: 2,
-      copyable: true
+      copyable: true,
+      defaultValue: '-'
     },
-    { 
+    {
       label: 'Unit Kerja',
-      key: 'unit',
+      key: ['unit', 'unitKerja', 'instansi'],
       type: FieldType.TEXT,
       icon: <Building2 className="w-4 h-4" />,
       colSpan: 2,
