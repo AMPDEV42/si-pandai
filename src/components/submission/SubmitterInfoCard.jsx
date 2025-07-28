@@ -32,6 +32,12 @@ const fieldSchema = {
 };
 
 const SubmitterInfoCard = ({ personalInfo = {} }) => {
+  // Debug logging to understand what data we're receiving
+  console.group('=== SubmitterInfoCard Debug ===');
+  console.log('Received personalInfo:', personalInfo);
+  console.log('PersonalInfo type:', typeof personalInfo);
+  console.log('PersonalInfo keys:', personalInfo ? Object.keys(personalInfo) : 'No keys');
+  console.groupEnd();
   // Format phone number
   const formatPhone = (phone) => {
     if (!phone || phone === '-') return '-';
@@ -82,23 +88,29 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
       // Handle dot notation for nested fields
       const keys = Array.isArray(key) ? key : [key];
       let value = null;
-      
+
+      // Safety check for personalInfo
+      if (!personalInfo || typeof personalInfo !== 'object') {
+        console.warn('PersonalInfo is not available or not an object:', personalInfo);
+        return defaultValue;
+      }
+
       // Try to find the first non-null value from the keys array
       for (const k of keys) {
-        const nestedValue = k.split('.').reduce((obj, k) => 
+        const nestedValue = k.split('.').reduce((obj, k) =>
           (obj && obj[k] !== undefined) ? obj[k] : null, personalInfo);
-        
-        if (nestedValue !== null && nestedValue !== undefined && nestedValue !== '') {
+
+        if (nestedValue !== null && nestedValue !== undefined && nestedValue !== '' && nestedValue !== 'null') {
           value = nestedValue;
           break;
         }
       }
-      
+
       // Return default value if no value found
-      if (value === null || value === undefined || value === '') {
+      if (value === null || value === undefined || value === '' || value === 'null') {
         return defaultValue;
       }
-      
+
       // Apply formatting based on format parameter
       switch (format) {
         case 'date':
@@ -106,7 +118,7 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
         case 'phone':
           return formatPhone(value);
         default:
-          return value;
+          return value.toString().trim();
       }
     } catch (error) {
       console.error(`Error getting field ${key}:`, error);
@@ -143,34 +155,38 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
 
   // Field definitions with proper schema
   const fields = [
-    { 
+    {
       label: 'Nama Lengkap',
-      key: 'name',
+      key: ['name', 'namaLengkap', 'nama'],
       type: FieldType.TEXT,
       icon: <UserIcon className="w-4 h-4" />,
       colSpan: 2,
-      copyable: true
+      copyable: true,
+      defaultValue: 'Tidak Diketahui'
     },
-    { 
+    {
       label: 'NIP',
-      key: 'nip',
+      key: ['nip', 'nomorIndukPegawai'],
       type: FieldType.TEXT,
       icon: <Tag className="w-4 h-4" />,
-      copyable: true
+      copyable: true,
+      defaultValue: '-'
     },
-    { 
+    {
       label: 'Email',
       key: 'email',
       type: FieldType.EMAIL,
       icon: <Mail className="w-4 h-4" />,
-      copyable: true
+      copyable: true,
+      defaultValue: '-'
     },
-    { 
+    {
       label: 'No. Telepon',
-      key: 'phone',
+      key: ['phone', 'noHp', 'noTelepon'],
       type: FieldType.PHONE,
       icon: <Phone className="w-4 h-4" />,
-      copyable: true
+      copyable: true,
+      defaultValue: '-'
     },
     { 
       label: 'Tempat, Tanggal Lahir',
@@ -212,17 +228,18 @@ const SubmitterInfoCard = ({ personalInfo = {} }) => {
       icon: <CalendarIcon className="w-4 h-4" />,
       format: 'date'
     },
-    { 
+    {
       label: 'Jabatan',
-      key: 'position',
+      key: ['position', 'jabatan', 'namaJabatan'],
       type: FieldType.TEXT,
       icon: <Briefcase className="w-4 h-4" />,
       colSpan: 2,
-      copyable: true
+      copyable: true,
+      defaultValue: '-'
     },
-    { 
+    {
       label: 'Unit Kerja',
-      key: 'unit',
+      key: ['unit', 'unitKerja', 'instansi'],
       type: FieldType.TEXT,
       icon: <Building2 className="w-4 h-4" />,
       colSpan: 2,
