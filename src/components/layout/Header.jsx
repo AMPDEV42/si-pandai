@@ -93,6 +93,24 @@ const Header = () => {
       <div className="flex items-center gap-4">
         <NotificationCenter />
 
+        {/* Help Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-gray-400 hover:bg-white/10 hover:text-white relative group"
+          onClick={() => {
+            toast({
+              title: "Keyboard Shortcuts",
+              description: "Ctrl+B: Toggle sidebar • Alt+D: Dashboard • Alt+N: New submission • Alt+H: History • Ctrl+/: Help",
+            });
+          }}
+        >
+          <HelpCircle className="w-5 h-5" />
+          <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-slate-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Keyboard Shortcuts
+          </div>
+        </Button>
+
         {/* User Profile Dropdown */}
         <DropdownMenu open={isUserDropdownOpen} onOpenChange={setIsUserDropdownOpen}>
           <DropdownMenuTrigger asChild>
