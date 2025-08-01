@@ -217,30 +217,58 @@ export const withErrorHandling = async (operation, context = '') => {
 // Network connectivity checker
 export const checkNetworkConnectivity = async () => {
   try {
-    // Try to fetch from multiple sources to check connectivity
-    const promises = [
-      fetch('https://httpbin.org/status/200', { method: 'HEAD' }),
-      fetch('https://jsonplaceholder.typicode.com/posts/1', { method: 'HEAD' }),
-      fetch('https://api.github.com', { method: 'HEAD' })
+    // Test connectivity with more reliable endpoints and shorter timeout
+    const endpoints = [
+      { url: 'https://www.google.com/favicon.ico', name: 'google' },
+      { url: 'https://cdn.jsdelivr.net/npm/axios@1.6.0/package.json', name: 'jsdelivr' },
+      { url: 'https://api.github.com', name: 'github' }
     ];
 
-    const results = await Promise.allSettled(promises);
-    const successCount = results.filter(result => result.status === 'fulfilled').length;
+    const testWithTimeout = async (endpoint) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // Shorter timeout
+
+      try {
+        const response = await fetch(endpoint.url, {
+          method: 'HEAD',
+          signal: controller.signal,
+          mode: 'no-cors' // Allow cross-origin
+        });
+        clearTimeout(timeoutId);
+        return { name: endpoint.name, success: true };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        return {
+          name: endpoint.name,
+          success: false,
+          error: error.name === 'AbortError' ? 'timeout' : error.message
+        };
+      }
+    };
+
+    const results = await Promise.allSettled(
+      endpoints.map(endpoint => testWithTimeout(endpoint))
+    );
+
+    const successCount = results.filter(result =>
+      result.status === 'fulfilled' && result.value.success
+    ).length;
 
     return {
       isOnline: successCount > 0,
-      connectivity: successCount / promises.length,
-      details: results.map((result, index) => ({
-        url: ['httpbin.org', 'jsonplaceholder.typicode.com', 'api.github.com'][index],
-        success: result.status === 'fulfilled',
-        error: result.reason?.message
-      }))
+      connectivity: successCount / endpoints.length,
+      details: results.map(result =>
+        result.status === 'fulfilled' ? result.value :
+        { name: 'unknown', success: false, error: result.reason?.message }
+      )
     };
   } catch (error) {
+    // Fallback to navigator.onLine
     return {
-      isOnline: false,
-      connectivity: 0,
-      error: error.message
+      isOnline: navigator.onLine,
+      connectivity: navigator.onLine ? 0.5 : 0,
+      error: error.message,
+      fallback: true
     };
   }
 };
