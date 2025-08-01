@@ -56,6 +56,14 @@ const ImprovedSubmissionPage = () => {
   useEffect(() => {
     const checkGoogleDriveStatus = async () => {
       try {
+        // Check if Google Drive is available first
+        if (!googleDriveService.isAvailable()) {
+          console.log('Google Drive not available - domain blocked or not configured');
+          setIsGoogleDriveEnabled(false);
+          setIsGoogleDriveAuthenticated(false);
+          return;
+        }
+
         // Use safe availability check instead of direct authentication check
         const availability = await checkGoogleDriveAvailability();
         if (availability.available) {
