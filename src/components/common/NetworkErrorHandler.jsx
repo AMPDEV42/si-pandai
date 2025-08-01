@@ -74,16 +74,19 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
 
     } catch (error) {
       // Conservative fallback - don't assume offline
+      const isDevelopment = import.meta.env.DEV;
+      const isNetworkError = error.message?.includes('Failed to fetch') || error.name === 'TypeError';
+
       setNetworkStatus(prev => ({
         ...prev,
-        isOnline: navigator.onLine,
+        isOnline: isDevelopment ? true : navigator.onLine, // Assume online in dev
         isChecking: false,
         lastCheck: new Date(),
         error: error.message
       }));
 
-      // Only show error if navigator definitively reports offline
-      if (!navigator.onLine) {
+      // Only show error if navigator definitively reports offline, and not in dev with network errors
+      if (!navigator.onLine && !(isDevelopment && isNetworkError)) {
         setShowNetworkError(true);
         toast({
           title: 'Masalah koneksi',
