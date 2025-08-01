@@ -9,6 +9,7 @@ import { AlertTriangle, Copy, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { config } from '../../config/environment';
 
 const DomainAuthError = ({ currentDomain, onRetry }) => {
   const [copied, setCopied] = useState(false);
