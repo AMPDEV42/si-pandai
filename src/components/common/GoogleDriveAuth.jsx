@@ -277,15 +277,15 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-amber-300">VITE_GOOGLE_DRIVE_API_KEY</span>
-                  <Badge className={`text-xs ${configDetails.apiKey ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  <span className={`text-xs px-2 py-1 rounded ${configDetails.apiKey ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                     {configDetails.apiKey ? 'Ada' : 'Tidak Ada'}
-                  </Badge>
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-amber-300">VITE_GOOGLE_DRIVE_CLIENT_ID</span>
-                  <Badge className={`text-xs ${configDetails.clientId ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  <span className={`text-xs px-2 py-1 rounded ${configDetails.clientId ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                     {configDetails.clientId ? 'Ada' : 'Tidak Ada'}
-                  </Badge>
+                  </span>
                 </div>
               </div>
             </div>
