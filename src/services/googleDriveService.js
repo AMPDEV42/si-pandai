@@ -226,8 +226,16 @@ class GoogleDriveService {
    */
   async isAuthenticated() {
     try {
+      // Return false immediately if domain is blocked
+      if (this.isDomainBlocked) {
+        return false;
+      }
+
       if (!this.isInitialized) {
-        await this.initialize();
+        const initResult = await this.initialize();
+        if (!initResult) {
+          return false;
+        }
       }
 
       if (!this.gapi || !this.gapi.auth2) {
