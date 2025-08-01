@@ -128,20 +128,30 @@ window.fetch = function(...args) {
 				contentType.includes('application/xhtml+xml');
 
 			if (!response.ok && !isDocumentResponse) {
-				try {
-					const responseClone = response.clone();
-					const errorFromRes = await responseClone.text();
-					const requestUrl = response.url;
+				// Skip logging for non-actionable errors
+				const isNonActionableError =
+					response.status === 0 ||  // Blocked/cancelled requests
+					response.status === 200 || // False positive
+					response.url.includes('chrome-extension://') || // Browser extensions
+					response.url.includes('moz-extension://') || // Firefox extensions
+					response.url.includes('safari-extension://'); // Safari extensions
 
-					// Only log if there's meaningful error content
-					if (errorFromRes && errorFromRes.trim().length > 0) {
-						console.error(\`Fetch error from \${requestUrl}: \${errorFromRes}\`);
-					} else {
-						console.error(\`Fetch error from \${requestUrl}: HTTP \${response.status} \${response.statusText}\`);
+				if (!isNonActionableError) {
+					try {
+						const responseClone = response.clone();
+						const errorFromRes = await responseClone.text();
+						const requestUrl = response.url;
+
+						// Only log if there's meaningful error content
+						if (errorFromRes && errorFromRes.trim().length > 0) {
+							console.error(\`Fetch error from \${requestUrl}: \${errorFromRes}\`);
+						} else {
+							console.error(\`Fetch error from \${requestUrl}: HTTP \${response.status} \${response.statusText}\`);
+						}
+					} catch (cloneError) {
+						// Fallback if response can't be cloned or read
+						console.error(\`Fetch error from \${response.url}: HTTP \${response.status} \${response.statusText} (response unreadable)\`);
 					}
-				} catch (cloneError) {
-					// Fallback if response can't be cloned or read
-					console.error(\`Fetch error from \${response.url}: HTTP \${response.status} \${response.statusText} (response unreadable)\`);
 				}
 			}
 
