@@ -33,6 +33,7 @@ import { testGoogleDriveUpload, getGoogleDriveStatus } from '../utils/googleDriv
 import { submissionService } from '../services/submissionService';
 import { googleDriveService } from '../services/googleDriveService';
 import { apiLogger } from '../lib/logger';
+import { safeInitializeGoogleDrive, checkGoogleDriveAvailability } from '../utils/googleDriveAvailability';
 
 const STEPS = {
   EMPLOYEE_SELECTION: 'employee',
