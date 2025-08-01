@@ -38,29 +38,21 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     setNetworkStatus(prev => ({ ...prev, isChecking: true }));
 
     try {
-      const [networkResult, supabaseResult] = await Promise.allSettled([
-        checkNetworkConnectivity(),
-        checkSupabaseConnectivity(config.supabase.url, config.supabase.anonKey)
-      ]);
+      const connectivityStatus = await getConnectivityStatus(
+        config.supabase.url,
+        config.supabase.anonKey
+      );
 
-      const networkStatus = networkResult.status === 'fulfilled' ? networkResult.value : { isOnline: false, error: networkResult.reason?.message };
-      const supabaseStatus = supabaseResult.status === 'fulfilled' ? supabaseResult.value : { isReachable: false, error: supabaseResult.reason?.message };
-
-      // Be more lenient with connectivity checks
-      const hasNetworkConnectivity = networkStatus.isOnline || navigator.onLine;
-      const hasSupabaseAccess = supabaseStatus.isReachable !== false; // Default to true if check failed
-
-      const isConnected = hasNetworkConnectivity && hasSupabaseAccess;
+      const isConnected = connectivityStatus.isOnline && connectivityStatus.status !== 'offline';
 
       setNetworkStatus({
         isOnline: isConnected,
         isChecking: false,
         lastCheck: new Date(),
-        supabaseReachable: hasSupabaseAccess,
-        details: {
-          network: networkStatus,
-          supabase: supabaseStatus
-        }
+        supabaseReachable: connectivityStatus.details?.supabase?.isReachable || false,
+        details: connectivityStatus.details,
+        status: connectivityStatus.status,
+        issues: connectivityStatus.issues
       });
 
       if (isConnected && showNetworkError) {
@@ -70,32 +62,34 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
           description: 'Koneksi ke server telah dipulihkan',
         });
         onNetworkRestore?.();
-      } else if (!isConnected && !showNetworkError) {
-        // Only show error if both checks definitively failed
-        const definiteFailure = networkStatus.isOnline === false && supabaseStatus.isReachable === false;
-        if (definiteFailure) {
-          setShowNetworkError(true);
-          toast({
-            title: 'Masalah koneksi',
-            description: 'Tidak dapat terhubung ke server',
-            variant: 'destructive'
-          });
-        }
+      } else if (!isConnected && !showNetworkError && connectivityStatus.status === 'offline') {
+        // Only show error for definitive offline status
+        setShowNetworkError(true);
+        toast({
+          title: 'Masalah koneksi',
+          description: connectivityStatus.issues?.join(', ') || 'Tidak dapat terhubung ke server',
+          variant: 'destructive'
+        });
       }
 
     } catch (error) {
-      // Don't assume offline on check failure - be conservative
+      // Conservative fallback - don't assume offline
       setNetworkStatus(prev => ({
         ...prev,
-        isOnline: navigator.onLine, // Fallback to browser detection
+        isOnline: navigator.onLine,
         isChecking: false,
         lastCheck: new Date(),
         error: error.message
       }));
 
-      // Only show error if navigator also reports offline
+      // Only show error if navigator definitively reports offline
       if (!navigator.onLine) {
         setShowNetworkError(true);
+        toast({
+          title: 'Masalah koneksi',
+          description: 'Periksa koneksi internet Anda',
+          variant: 'destructive'
+        });
       }
     }
   };
