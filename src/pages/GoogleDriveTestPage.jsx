@@ -433,8 +433,11 @@ const GoogleDriveTestPage = () => {
             <SupabaseFetchTest />
           </div>
         ) : activeTab === 'upload' ? (
-          <div className="max-w-2xl mx-auto">
-            <GoogleDriveTestRunner />
+          <div className="space-y-6">
+            <GoogleDriveUploadTest />
+            <div className="max-w-2xl mx-auto">
+              <GoogleDriveTestRunner />
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
