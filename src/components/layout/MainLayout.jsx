@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useSidebar } from '../../contexts/SidebarContext';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 const MainLayout = () => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
