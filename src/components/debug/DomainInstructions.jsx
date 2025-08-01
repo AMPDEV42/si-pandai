@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Copy, ExternalLink, Globe, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { config } from '../../config/environment';
 
 const DomainInstructions = () => {
   const [copied, setCopied] = useState(false);
