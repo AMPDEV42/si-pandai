@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import GoogleDriveAuth from '../components/common/GoogleDriveAuth';
 import GoogleDriveTestRunner from '../components/test/GoogleDriveTestRunner';
+import GoogleDriveUploadTest from '../components/test/GoogleDriveUploadTest';
 import SupabaseFetchTest from '../components/test/SupabaseFetchTest';
 import { googleDriveService } from '../services/googleDriveService';
 import { apiLogger } from '../lib/logger';
@@ -432,8 +433,11 @@ const GoogleDriveTestPage = () => {
             <SupabaseFetchTest />
           </div>
         ) : activeTab === 'upload' ? (
-          <div className="max-w-2xl mx-auto">
-            <GoogleDriveTestRunner />
+          <div className="space-y-6">
+            <GoogleDriveUploadTest />
+            <div className="max-w-2xl mx-auto">
+              <GoogleDriveTestRunner />
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

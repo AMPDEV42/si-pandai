@@ -9,6 +9,7 @@ import { AlertTriangle, Copy, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { config } from '../../config/environment';
 
 const DomainAuthError = ({ currentDomain, onRetry }) => {
   const [copied, setCopied] = useState(false);
@@ -108,7 +109,7 @@ const DomainAuthError = ({ currentDomain, onRetry }) => {
                     Find your OAuth 2.0 Client ID and click "Edit"
                   </p>
                   <code className="text-xs text-gray-400 mt-1 block">
-                    Client ID: 47138776708-suu99tvg4v2l4248ololg59hvsevpo13.apps.googleusercontent.com
+                    Client ID: {config.googleDrive.clientId || 'YOUR_CLIENT_ID'}
                   </code>
                 </div>
               </div>

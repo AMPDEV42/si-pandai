@@ -3,6 +3,8 @@
  * Quick test to verify domain authorization issues
  */
 
+import { config } from '../config/environment';
+
 export const testGoogleDriveSimple = async () => {
   console.log('🔍 Testing Google Drive Domain Authorization...');
   console.log('📍 Current Domain:', window.location.origin);
@@ -41,9 +43,9 @@ export const testGoogleDriveSimple = async () => {
   // Test 3: Simple client init (this should fail with domain error)
   try {
     await window.gapi.client.init({
-      apiKey: 'AIzaSyAUKwdfTj5iy2irq67WuHpdUjXOgSpXO3U',
-      clientId: '47138776708-suu99tvg4v2l4248ololg59hvsevpo13.apps.googleusercontent.com',
-      scope: 'https://www.googleapis.com/auth/drive.file'
+      apiKey: config.googleDrive.apiKey,
+      clientId: config.googleDrive.clientId,
+      scope: config.googleDrive.scope
     });
     console.log('✅ GAPI client initialized - Domain is authorized!');
   } catch (error) {
@@ -55,7 +57,7 @@ export const testGoogleDriveSimple = async () => {
     console.log(`
 🔧 Fix Instructions:
 1. Go to: https://console.cloud.google.com/apis/credentials
-2. Find OAuth 2.0 Client ID: 47138776708-suu99tvg4v2l4248ololg59hvsevpo13.apps.googleusercontent.com
+2. Find OAuth 2.0 Client ID: ${config.googleDrive.clientId}
 3. Click "Edit"
 4. Under "Authorized JavaScript origins", add:
    ${window.location.origin}
