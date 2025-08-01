@@ -38,6 +38,33 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     setNetworkStatus(prev => ({ ...prev, isChecking: true }));
 
     try {
+      // Check if environment variables are configured
+      const hasSupabaseConfig = config.supabase.url && config.supabase.anonKey;
+
+      if (!hasSupabaseConfig) {
+        const isDevelopment = import.meta.env.DEV;
+
+        setNetworkStatus({
+          isOnline: isDevelopment, // Assume online in dev when config missing
+          isChecking: false,
+          lastCheck: new Date(),
+          supabaseReachable: isDevelopment,
+          configMissing: true,
+          status: isDevelopment ? 'dev-config-missing' : 'config-error',
+          issues: ['Missing Supabase configuration']
+        });
+
+        if (!isDevelopment) {
+          setShowNetworkError(true);
+          toast({
+            title: 'Konfigurasi hilang',
+            description: 'Konfigurasi database tidak ditemukan. Hubungi administrator.',
+            variant: 'destructive'
+          });
+        }
+        return;
+      }
+
       const connectivityStatus = await getConnectivityStatus(
         config.supabase.url,
         config.supabase.anonKey
@@ -52,7 +79,8 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
         supabaseReachable: connectivityStatus.details?.supabase?.isReachable || false,
         details: connectivityStatus.details,
         status: connectivityStatus.status,
-        issues: connectivityStatus.issues
+        issues: connectivityStatus.issues,
+        configMissing: false
       });
 
       if (isConnected && showNetworkError) {
@@ -76,14 +104,27 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
       // Conservative fallback - don't assume offline
       const isDevelopment = import.meta.env.DEV;
       const isNetworkError = error.message?.includes('Failed to fetch') || error.name === 'TypeError';
+      const isConfigError = error.message?.includes('ConfigError') || error.name === 'ConfigError';
 
       setNetworkStatus(prev => ({
         ...prev,
         isOnline: isDevelopment ? true : navigator.onLine, // Assume online in dev
         isChecking: false,
         lastCheck: new Date(),
-        error: error.message
+        error: error.message,
+        configMissing: isConfigError
       }));
+
+      // Handle configuration errors
+      if (isConfigError) {
+        setShowNetworkError(true);
+        toast({
+          title: 'Masalah konfigurasi',
+          description: 'Aplikasi tidak dikonfigurasi dengan benar. Hubungi administrator.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
       // Only show error if navigator definitively reports offline, and not in dev with network errors
       if (!navigator.onLine && !(isDevelopment && isNetworkError)) {
