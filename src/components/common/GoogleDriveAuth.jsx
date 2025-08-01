@@ -176,11 +176,12 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
         errorMessage = 'Popup diblokir browser. Pastikan popup diizinkan untuk website ini.';
       } else if (error.message.includes('access_denied')) {
         errorMessage = 'Akses ditolak. Silakan berikan izin untuk mengakses Google Drive.';
-      } else if (error.message.includes('DOMAIN_AUTH_ERROR') || 
-                error.message.includes('origin') || 
-                error.message.includes('domain') || 
+      } else if (error.message.includes('DOMAIN_AUTH_ERROR') ||
+                error.message.includes('origin') ||
+                error.message.includes('domain') ||
                 error.message.includes('not allowed') ||
                 error.message.includes('Domain authorization') ||
+                error.message.includes('Google Drive unavailable: Domain authorization required') ||
                 (error.error && error.error === 'idpiframe_initialization_failed')) {
         errorMessage = `Domain ${window.location.origin} tidak diotorisasi.\n\n` +
                      '1. Buka Google Cloud Console\n' +
