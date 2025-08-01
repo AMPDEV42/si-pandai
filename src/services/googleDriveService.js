@@ -31,9 +31,15 @@ class GoogleDriveService {
       hasApiKey,
       hasClientId,
       isEnabled,
+      isDomainBlocked: this.isDomainBlocked,
       apiKeyLength: config.googleDrive.apiKey?.length || 0,
       clientIdLength: config.googleDrive.clientId?.length || 0
     });
+
+    // Return false if domain is blocked to prevent repeated attempts
+    if (this.isDomainBlocked) {
+      return false;
+    }
 
     return isEnabled && hasApiKey && hasClientId;
   }
