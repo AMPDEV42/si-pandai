@@ -143,11 +143,44 @@ export const checkNetworkConnectivity = async () => {
 
 // Supabase-specific connectivity check
 export const checkSupabaseConnectivity = async (supabaseUrl, apiKey = null) => {
-  if (!supabaseUrl) {
+  // Check if environment variables are missing
+  if (!supabaseUrl || !supabaseUrl.trim()) {
+    const isDevelopment = import.meta.env.DEV;
+
+    apiLogger.warn('Missing Supabase configuration', {
+      hasUrl: !!supabaseUrl,
+      hasApiKey: !!apiKey,
+      isDevelopment
+    });
+
+    if (isDevelopment) {
+      // In development, assume reachable if config is missing
+      return {
+        isReachable: true,
+        status: 'dev-config-missing',
+        error: 'No Supabase URL configured',
+        hasApiKey: !!apiKey,
+        note: 'Assuming reachable in development - check environment variables'
+      };
+    }
+
     return {
       isReachable: false,
       error: 'No Supabase URL configured',
-      hasApiKey: !!apiKey
+      hasApiKey: !!apiKey,
+      note: 'Check VITE_SUPABASE_URL environment variable'
+    };
+  }
+
+  // Validate URL format
+  try {
+    new URL(supabaseUrl);
+  } catch (urlError) {
+    return {
+      isReachable: false,
+      error: 'Invalid Supabase URL format',
+      hasApiKey: !!apiKey,
+      url: supabaseUrl
     };
   }
 
@@ -160,7 +193,7 @@ export const checkSupabaseConnectivity = async (supabaseUrl, apiKey = null) => {
     };
 
     // Include API key if provided
-    if (apiKey) {
+    if (apiKey && apiKey.trim()) {
       headers['apikey'] = apiKey;
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
@@ -191,13 +224,15 @@ export const checkSupabaseConnectivity = async (supabaseUrl, apiKey = null) => {
     // In development environment, handle fetch errors more gracefully
     const isDevelopment = import.meta.env.DEV;
     const isNetworkError = error.message?.includes('Failed to fetch') || error.name === 'TypeError';
+    const isAbortError = error.name === 'AbortError';
 
-    if (isDevelopment && isNetworkError) {
+    if (isDevelopment && (isNetworkError || isAbortError)) {
       // Log error but don't fail completely in dev environment
       apiLogger.warn('Supabase connectivity check failed in dev environment', {
         url: supabaseUrl,
         error: error.message,
-        type: error.name
+        type: error.name,
+        note: 'This might be due to CORS, missing env vars, or network restrictions in dev'
       });
 
       // Return as reachable but with error info
@@ -214,7 +249,7 @@ export const checkSupabaseConnectivity = async (supabaseUrl, apiKey = null) => {
 
     const result = {
       isReachable: false,
-      error: error.message,
+      error: isAbortError ? 'Connection timeout' : error.message,
       name: error.name,
       hasApiKey: !!apiKey,
       url: supabaseUrl
