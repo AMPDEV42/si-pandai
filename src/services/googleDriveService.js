@@ -45,6 +45,13 @@ class GoogleDriveService {
   }
 
   /**
+   * Check if Google Drive is available (not blocked)
+   */
+  isAvailable() {
+    return !this.isDomainBlocked && this.isConfigured();
+  }
+
+  /**
    * Initialize Google Drive API with retry mechanism
    */
   async initialize() {
