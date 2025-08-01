@@ -15,6 +15,8 @@ class GoogleDriveService {
     this.initializationPromise = null;
     this.retryCount = 0;
     this.maxRetries = 3;
+    this.domainAuthError = null; // Track domain authorization errors
+    this.isDomainBlocked = false; // Flag to prevent repeated attempts
   }
 
   /**
