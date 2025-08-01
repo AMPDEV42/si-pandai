@@ -148,8 +148,12 @@ window.fetch = function(...args) {
 			return response;
 		})
 		.catch(error => {
+			// Only log non-HTML fetch errors with meaningful content
 			if (!url.match(/\.html?$/i)) {
-				console.error(error);
+				const errorMessage = error.message || error.toString();
+				if (errorMessage && !errorMessage.includes('Load failed') && !errorMessage.includes('net::ERR_BLOCKED_BY_CLIENT')) {
+					console.error(\`Network error for \${url}:\`, errorMessage);
+				}
 			}
 
 			throw error;
