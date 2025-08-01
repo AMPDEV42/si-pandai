@@ -17,12 +17,11 @@ import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useToast } from '../ui/use-toast';
-import { 
-  isOnline, 
-  checkNetworkConnectivity, 
-  setupNetworkListeners,
-  checkSupabaseConnectivity 
+import {
+  isOnline,
+  setupNetworkListeners
 } from '../../lib/networkChecker';
+import { getConnectivityStatus } from '../../lib/networkUtils';
 import { config } from '../../config/environment';
 
 const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
