@@ -17,12 +17,11 @@ import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useToast } from '../ui/use-toast';
-import { 
-  isOnline, 
-  checkNetworkConnectivity, 
-  setupNetworkListeners,
-  checkSupabaseConnectivity 
+import {
+  isOnline,
+  setupNetworkListeners
 } from '../../lib/networkChecker';
+import { getConnectivityStatus } from '../../lib/networkUtils';
 import { config } from '../../config/environment';
 
 const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
@@ -39,22 +38,21 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     setNetworkStatus(prev => ({ ...prev, isChecking: true }));
 
     try {
-      const [networkResult, supabaseResult] = await Promise.all([
-        checkNetworkConnectivity(),
-        checkSupabaseConnectivity(config.supabase.url, config.supabase.anonKey)
-      ]);
+      const connectivityStatus = await getConnectivityStatus(
+        config.supabase.url,
+        config.supabase.anonKey
+      );
 
-      const isConnected = networkResult.isOnline && supabaseResult.isReachable;
+      const isConnected = connectivityStatus.isOnline && connectivityStatus.status !== 'offline';
 
       setNetworkStatus({
         isOnline: isConnected,
         isChecking: false,
         lastCheck: new Date(),
-        supabaseReachable: supabaseResult.isReachable,
-        details: {
-          network: networkResult,
-          supabase: supabaseResult
-        }
+        supabaseReachable: connectivityStatus.details?.supabase?.isReachable || false,
+        details: connectivityStatus.details,
+        status: connectivityStatus.status,
+        issues: connectivityStatus.issues
       });
 
       if (isConnected && showNetworkError) {
@@ -64,23 +62,35 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
           description: 'Koneksi ke server telah dipulihkan',
         });
         onNetworkRestore?.();
-      } else if (!isConnected && !showNetworkError) {
+      } else if (!isConnected && !showNetworkError && connectivityStatus.status === 'offline') {
+        // Only show error for definitive offline status
         setShowNetworkError(true);
         toast({
           title: 'Masalah koneksi',
-          description: 'Tidak dapat terhubung ke server',
+          description: connectivityStatus.issues?.join(', ') || 'Tidak dapat terhubung ke server',
           variant: 'destructive'
         });
       }
 
     } catch (error) {
+      // Conservative fallback - don't assume offline
       setNetworkStatus(prev => ({
         ...prev,
-        isOnline: false,
+        isOnline: navigator.onLine,
         isChecking: false,
-        lastCheck: new Date()
+        lastCheck: new Date(),
+        error: error.message
       }));
-      setShowNetworkError(true);
+
+      // Only show error if navigator definitively reports offline
+      if (!navigator.onLine) {
+        setShowNetworkError(true);
+        toast({
+          title: 'Masalah koneksi',
+          description: 'Periksa koneksi internet Anda',
+          variant: 'destructive'
+        });
+      }
     }
   };
 

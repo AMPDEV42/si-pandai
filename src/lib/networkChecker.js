@@ -20,29 +20,63 @@ export const checkNetworkConnectivity = async () => {
     };
   }
 
+  // Test multiple reliable endpoints
+  const endpoints = [
+    'https://www.google.com/favicon.ico',
+    'https://cdn.jsdelivr.net/npm/axios@1.6.0/package.json',
+    'https://api.github.com',
+    'https://jsonplaceholder.typicode.com/posts/1'
+  ];
+
+  const testEndpoint = async (url) => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch(url, {
+        method: 'HEAD',
+        signal: controller.signal,
+        cache: 'no-cache',
+        mode: 'no-cors' // Allow cross-origin requests
+      });
+
+      clearTimeout(timeoutId);
+      return { success: true, url };
+    } catch (error) {
+      return {
+        success: false,
+        url,
+        error: error.name === 'AbortError' ? 'timeout' : error.message
+      };
+    }
+  };
+
   try {
-    // Test with a simple, fast endpoint
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    // Test endpoints in parallel with shorter timeout
+    const results = await Promise.allSettled(
+      endpoints.map(endpoint => testEndpoint(endpoint))
+    );
 
-    const response = await fetch('https://httpbin.org/status/200', {
-      method: 'HEAD',
-      signal: controller.signal,
-      cache: 'no-cache'
-    });
+    const successfulTests = results.filter(result =>
+      result.status === 'fulfilled' && result.value.success
+    ).length;
 
-    clearTimeout(timeoutId);
+    const connectivity = successfulTests / endpoints.length;
 
     return {
-      isOnline: response.ok,
-      connectivity: response.ok ? 1 : 0,
-      responseTime: response.ok ? 'fast' : 'slow'
+      isOnline: connectivity > 0,
+      connectivity,
+      responseTime: connectivity > 0.5 ? 'fast' : 'slow',
+      testedEndpoints: endpoints.length,
+      successfulTests
     };
   } catch (error) {
+    // Fallback: assume online if navigator says so
     return {
-      isOnline: false,
-      connectivity: 0,
-      reason: error.name === 'AbortError' ? 'timeout' : error.message
+      isOnline: navigator.onLine,
+      connectivity: navigator.onLine ? 0.5 : 0,
+      reason: 'Network test failed, using navigator.onLine',
+      fallback: true
     };
   }
 };

@@ -15,6 +15,8 @@ class GoogleDriveService {
     this.initializationPromise = null;
     this.retryCount = 0;
     this.maxRetries = 3;
+    this.domainAuthError = null; // Track domain authorization errors
+    this.isDomainBlocked = false; // Flag to prevent repeated attempts
   }
 
   /**
@@ -29,17 +31,39 @@ class GoogleDriveService {
       hasApiKey,
       hasClientId,
       isEnabled,
+      isDomainBlocked: this.isDomainBlocked,
       apiKeyLength: config.googleDrive.apiKey?.length || 0,
       clientIdLength: config.googleDrive.clientId?.length || 0
     });
 
+    // Return false if domain is blocked to prevent repeated attempts
+    if (this.isDomainBlocked) {
+      return false;
+    }
+
     return isEnabled && hasApiKey && hasClientId;
+  }
+
+  /**
+   * Check if Google Drive is available (not blocked)
+   */
+  isAvailable() {
+    return !this.isDomainBlocked && this.isConfigured();
   }
 
   /**
    * Initialize Google Drive API with retry mechanism
    */
   async initialize() {
+    // Return false immediately if domain is blocked
+    if (this.isDomainBlocked) {
+      apiLogger.warn('Google Drive initialization skipped - domain authorization error', {
+        domain: window.location.origin,
+        error: this.domainAuthError
+      });
+      return false;
+    }
+
     // Return existing promise if already initializing
     if (this.initializationPromise) {
       return this.initializationPromise;
@@ -209,8 +233,16 @@ class GoogleDriveService {
    */
   async isAuthenticated() {
     try {
+      // Return false immediately if domain is blocked
+      if (this.isDomainBlocked) {
+        return false;
+      }
+
       if (!this.isInitialized) {
-        await this.initialize();
+        const initResult = await this.initialize();
+        if (!initResult) {
+          return false;
+        }
       }
 
       if (!this.gapi || !this.gapi.auth2) {
@@ -232,7 +264,14 @@ class GoogleDriveService {
 
       return false;
     } catch (error) {
-      apiLogger.error('Failed to check authentication status', error);
+      // Only log as error if it's not a domain authorization issue
+      if (error.message?.includes('Domain Authorization Required')) {
+        apiLogger.debug('Authentication check skipped - domain not authorized', {
+          domain: window.location.origin
+        });
+      } else {
+        apiLogger.error('Failed to check authentication status', error);
+      }
       return false;
     }
   }
@@ -254,21 +293,46 @@ class GoogleDriveService {
       auth2Available: !!window.gapi?.auth2
     };
 
-    apiLogger.error('GAPI initialization error', { error: errorDetails });
+    // Only log as error if it's not a domain authorization issue
+    if (errorDetails.message.includes('origin') ||
+        errorDetails.message.includes('domain') ||
+        errorDetails.message.includes('not allowed') ||
+        error?.error === 'idpiframe_initialization_failed') {
+      apiLogger.debug('GAPI initialization skipped - domain authorization required', {
+        domain: window.location.origin,
+        error: errorDetails
+      });
+    } else {
+      apiLogger.error('GAPI initialization error', { error: errorDetails });
+    }
 
     // Check for common issues and provide specific guidance
     if (errorDetails.message.includes('origin') ||
         errorDetails.message.includes('domain') ||
         errorDetails.message.includes('not allowed') ||
         error?.error === 'idpiframe_initialization_failed') {
-      reject(new Error(`❌ Domain Authorization Required: The domain "${window.location.origin}" is not authorized in Google Cloud Console.
+
+      // Mark domain as blocked and store error details
+      this.isDomainBlocked = true;
+      this.domainAuthError = `Domain ${window.location.origin} not authorized`;
+
+      const errorMessage = `❌ Domain Authorization Required: The domain "${window.location.origin}" is not authorized in Google Cloud Console.
 
 📋 To fix this:
 1. Go to: https://console.cloud.google.com/apis/credentials
 2. Edit OAuth 2.0 Client ID: ${config.googleDrive.clientId || 'YOUR_CLIENT_ID'}
 3. Add to "Authorized JavaScript origins": ${window.location.origin}
 4. Add to "Authorized redirect URIs": ${window.location.origin}/auth/google/callback
-5. Save and wait 5-10 minutes for changes to propagate`));
+5. Save and wait 5-10 minutes for changes to propagate`;
+
+      // Log once at warning level to reduce noise
+      apiLogger.warn('Google Drive domain authorization required', {
+        domain: window.location.origin,
+        clientId: config.googleDrive.clientId,
+        isDomainBlocked: true
+      });
+
+      reject(new Error(errorMessage));
     } else if (errorDetails.code === 'popup_blocked_by_browser') {
       reject(new Error('❌ Popup blocked by browser. Please allow popups for this domain.'));
     } else if (!errorDetails.gapiAvailable) {
@@ -347,6 +411,12 @@ Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authoriz
    */
   async authenticate(silent = true) {
     try {
+      // Return false immediately if domain is blocked
+      if (this.isDomainBlocked) {
+        apiLogger.debug('Authentication skipped - domain authorization required');
+        return false;
+      }
+
       if (!this.gapi || !this.gapi.auth2) {
         throw new Error('Google API not initialized');
       }

@@ -33,6 +33,7 @@ import { testGoogleDriveUpload, getGoogleDriveStatus } from '../utils/googleDriv
 import { submissionService } from '../services/submissionService';
 import { googleDriveService } from '../services/googleDriveService';
 import { apiLogger } from '../lib/logger';
+import { safeInitializeGoogleDrive, checkGoogleDriveAvailability } from '../utils/googleDriveAvailability';
 
 const STEPS = {
   EMPLOYEE_SELECTION: 'employee',
@@ -55,11 +56,27 @@ const ImprovedSubmissionPage = () => {
   useEffect(() => {
     const checkGoogleDriveStatus = async () => {
       try {
-        const status = await googleDriveService.isAuthenticated();
-        setIsGoogleDriveEnabled(status);
-        setIsGoogleDriveAuthenticated(status);
+        // Check if Google Drive is available first
+        if (!googleDriveService.isAvailable()) {
+          console.log('Google Drive not available - domain blocked or not configured');
+          setIsGoogleDriveEnabled(false);
+          setIsGoogleDriveAuthenticated(false);
+          return;
+        }
+
+        // Use safe availability check instead of direct authentication check
+        const availability = await checkGoogleDriveAvailability();
+        if (availability.available) {
+          const status = await googleDriveService.isAuthenticated();
+          setIsGoogleDriveEnabled(true);
+          setIsGoogleDriveAuthenticated(status);
+        } else {
+          console.log('Google Drive not available:', availability.reason);
+          setIsGoogleDriveEnabled(false);
+          setIsGoogleDriveAuthenticated(false);
+        }
       } catch (error) {
-        console.error('Error checking Google Drive status:', error);
+        console.log('Error checking Google Drive status:', error.message);
         setIsGoogleDriveEnabled(false);
         setIsGoogleDriveAuthenticated(false);
       } finally {
@@ -279,19 +296,26 @@ const ImprovedSubmissionPage = () => {
   useEffect(() => {
     const checkDriveStatus = async () => {
       try {
-        const isConfigured = googleDriveService.isConfigured();
-        if (!isConfigured) {
-          console.log('Google Drive not configured');
+        // Check if Google Drive is available first
+        const availability = await checkGoogleDriveAvailability();
+        if (!availability.available) {
+          console.log('Google Drive not available:', availability.reason);
+          setIsGoogleDriveEnabled(false);
           return;
         }
-        
-        // Initialize Google Drive service
-        await googleDriveService.initialize();
-        
+
+        // Initialize Google Drive service safely
+        const initSuccess = await safeInitializeGoogleDrive();
+        if (!initSuccess) {
+          console.log('Google Drive initialization failed gracefully');
+          setIsGoogleDriveEnabled(false);
+          return;
+        }
+
         // Check authentication status
         const isAuthenticated = await googleDriveService.isAuthenticated();
         setIsGoogleDriveAuthenticated(isAuthenticated);
-        
+
         if (!isAuthenticated) {
           // Try to authenticate silently
           try {
@@ -302,7 +326,8 @@ const ImprovedSubmissionPage = () => {
           }
         }
       } catch (error) {
-        console.error('Error initializing Google Drive:', error);
+        console.log('Google Drive setup completed with warnings:', error.message);
+        setIsGoogleDriveEnabled(false);
       }
     };
 

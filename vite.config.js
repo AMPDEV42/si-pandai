@@ -128,17 +128,56 @@ window.fetch = function(...args) {
 				contentType.includes('application/xhtml+xml');
 
 			if (!response.ok && !isDocumentResponse) {
-					const responseClone = response.clone();
-					const errorFromRes = await responseClone.text();
-					const requestUrl = response.url;
-					console.error(\`Fetch error from \${requestUrl}: \${errorFromRes}\`);
+				// Skip logging for non-actionable errors
+				const isNonActionableError =
+					response.status === 0 ||  // Blocked/cancelled requests
+					response.status === 200 || // False positive
+					response.url.includes('chrome-extension://') || // Browser extensions
+					response.url.includes('moz-extension://') || // Firefox extensions
+					response.url.includes('safari-extension://'); // Safari extensions
+
+				if (!isNonActionableError) {
+					try {
+						const responseClone = response.clone();
+						const errorFromRes = await responseClone.text();
+						const requestUrl = response.url;
+
+						// Only log if there's meaningful error content
+						if (errorFromRes && errorFromRes.trim().length > 0) {
+							console.error(\`Fetch error from \${requestUrl}: \${errorFromRes}\`);
+						} else {
+							console.error(\`Fetch error from \${requestUrl}: HTTP \${response.status} \${response.statusText}\`);
+						}
+					} catch (cloneError) {
+						// Fallback if response can't be cloned or read
+						console.error(\`Fetch error from \${response.url}: HTTP \${response.status} \${response.statusText} (response unreadable)\`);
+					}
+				}
 			}
 
 			return response;
 		})
 		.catch(error => {
+			// Only log non-HTML fetch errors with meaningful content
 			if (!url.match(/\.html?$/i)) {
-				console.error(error);
+				const errorMessage = error.message || error.toString();
+
+				// Filter out common non-actionable errors
+				const isNonActionableError =
+					errorMessage.includes('Load failed') ||
+					errorMessage.includes('net::ERR_BLOCKED_BY_CLIENT') ||
+					errorMessage.includes('net::ERR_NETWORK_CHANGED') ||
+					errorMessage.includes('net::ERR_INTERNET_DISCONNECTED') ||
+					errorMessage.includes('The user aborted a request') ||
+					errorMessage.includes('AbortError') ||
+					errorMessage.includes('NetworkError') ||
+					url.includes('chrome-extension://') ||
+					url.includes('moz-extension://') ||
+					url.includes('safari-extension://');
+
+				if (errorMessage && !isNonActionableError) {
+					console.error(\`Network error for \${url}:\`, errorMessage);
+				}
 			}
 
 			throw error;

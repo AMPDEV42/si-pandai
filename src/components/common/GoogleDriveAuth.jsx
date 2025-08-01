@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { googleDriveService } from '@/services/googleDriveService';
 import { apiLogger } from '@/lib/logger';
 import { config } from '@/config/environment';
+import DomainAuthError from '@/components/common/DomainAuthError';
 
 const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
   const [isConfigured, setIsConfigured] = useState(false);
@@ -63,8 +64,16 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
   const checkAuthentication = async () => {
     try {
       setIsChecking(true);
-      
+
       if (!isConfigured) {
+        setIsAuthenticated(false);
+        onAuthChange(false);
+        return false;
+      }
+
+      // Check if Google Drive is available first
+      if (!googleDriveService.isAvailable()) {
+        setIsDomainError(true);
         setIsAuthenticated(false);
         onAuthChange(false);
         return false;
@@ -76,7 +85,7 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
         const authenticated = await googleDriveService.isAuthenticated();
         setIsAuthenticated(authenticated);
         onAuthChange(authenticated);
-        
+
         if (authenticated) {
           setError(null);
           return true;
@@ -152,7 +161,13 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
     try {
       setIsAuthenticating(true);
       setError(null);
-      
+
+      // Check if Google Drive is available before attempting authentication
+      if (!googleDriveService.isAvailable()) {
+        setIsDomainError(true);
+        return;
+      }
+
       const authResult = await googleDriveService.authenticate();
       
       if (!authResult) {
@@ -165,7 +180,21 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
       setIsDomainError(false);
       apiLogger.info('Google Drive authentication successful');
     } catch (error) {
-      apiLogger.error('Google Drive authentication failed', error);
+      // Check if it's a domain authorization error for conditional logging
+      const isDomainError = error.message.includes('DOMAIN_AUTH_ERROR') ||
+                           error.message.includes('origin') ||
+                           error.message.includes('domain') ||
+                           error.message.includes('not allowed') ||
+                           error.message.includes('Domain authorization') ||
+                           error.message.includes('Google Drive unavailable: Domain authorization required');
+
+      if (isDomainError) {
+        apiLogger.debug('Google Drive authentication failed - domain authorization required', {
+          domain: window.location.origin
+        });
+      } else {
+        apiLogger.error('Google Drive authentication failed', error);
+      }
 
       let errorMessage = 'Gagal melakukan autentikasi Google Drive.';
       let isDomain = false;
@@ -175,11 +204,12 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
         errorMessage = 'Popup diblokir browser. Pastikan popup diizinkan untuk website ini.';
       } else if (error.message.includes('access_denied')) {
         errorMessage = 'Akses ditolak. Silakan berikan izin untuk mengakses Google Drive.';
-      } else if (error.message.includes('DOMAIN_AUTH_ERROR') || 
-                error.message.includes('origin') || 
-                error.message.includes('domain') || 
+      } else if (error.message.includes('DOMAIN_AUTH_ERROR') ||
+                error.message.includes('origin') ||
+                error.message.includes('domain') ||
                 error.message.includes('not allowed') ||
                 error.message.includes('Domain authorization') ||
+                error.message.includes('Google Drive unavailable: Domain authorization required') ||
                 (error.error && error.error === 'idpiframe_initialization_failed')) {
         errorMessage = `Domain ${window.location.origin} tidak diotorisasi.\n\n` +
                      '1. Buka Google Cloud Console\n' +
