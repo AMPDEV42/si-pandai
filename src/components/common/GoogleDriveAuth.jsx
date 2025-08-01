@@ -153,7 +153,13 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
     try {
       setIsAuthenticating(true);
       setError(null);
-      
+
+      // Check if Google Drive is available before attempting authentication
+      if (!googleDriveService.isAvailable()) {
+        setIsDomainError(true);
+        return;
+      }
+
       const authResult = await googleDriveService.authenticate();
       
       if (!authResult) {
