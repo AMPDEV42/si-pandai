@@ -386,6 +386,11 @@ Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authoriz
    */
   async authenticate(silent = true) {
     try {
+      // Return false immediately if domain is blocked
+      if (this.isDomainBlocked) {
+        throw new Error('Google Drive unavailable: Domain authorization required');
+      }
+
       if (!this.gapi || !this.gapi.auth2) {
         throw new Error('Google API not initialized');
       }
