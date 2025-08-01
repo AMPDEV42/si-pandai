@@ -59,14 +59,22 @@ const MainLayout = () => {
         
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)]">
+          <main
+            id="main-content"
+            role="main"
+            aria-label="Konten utama aplikasi"
+            className="p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)]"
+          >
             <Outlet />
-            
+
             {/* Footer */}
-            <footer className="mt-8 pt-4 text-center text-sm text-gray-400 border-t border-white/10">
+            <footer
+              role="contentinfo"
+              className="mt-8 pt-4 text-center text-sm text-gray-400 border-t border-white/10"
+            >
               <p>© {new Date().getFullYear()} SIPANDAI - Sistem Pengajuan Administrasi Digital ASN Terintegrasi</p>
             </footer>
-          </div>
+          </main>
         </div>
       </div>
     </div>
