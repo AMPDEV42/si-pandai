@@ -162,7 +162,7 @@ window.fetch = function(...args) {
 			if (!url.match(/\.html?$/i)) {
 				const errorMessage = error.message || error.toString();
 
-				// Filter out common non-actionable errors
+				// Filter out common non-actionable errors and Supabase requests
 				const isNonActionableError =
 					errorMessage.includes('Load failed') ||
 					errorMessage.includes('net::ERR_BLOCKED_BY_CLIENT') ||
@@ -173,7 +173,8 @@ window.fetch = function(...args) {
 					errorMessage.includes('NetworkError') ||
 					url.includes('chrome-extension://') ||
 					url.includes('moz-extension://') ||
-					url.includes('safari-extension://');
+					url.includes('safari-extension://') ||
+					url.includes('.supabase.co'); // Don't log Supabase errors in dev
 
 				if (errorMessage && !isNonActionableError) {
 					console.error(\`Network error for \${url}:\`, errorMessage);
