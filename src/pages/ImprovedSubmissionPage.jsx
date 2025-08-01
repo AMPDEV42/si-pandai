@@ -56,11 +56,19 @@ const ImprovedSubmissionPage = () => {
   useEffect(() => {
     const checkGoogleDriveStatus = async () => {
       try {
-        const status = await googleDriveService.isAuthenticated();
-        setIsGoogleDriveEnabled(status);
-        setIsGoogleDriveAuthenticated(status);
+        // Use safe availability check instead of direct authentication check
+        const availability = await checkGoogleDriveAvailability();
+        if (availability.available) {
+          const status = await googleDriveService.isAuthenticated();
+          setIsGoogleDriveEnabled(true);
+          setIsGoogleDriveAuthenticated(status);
+        } else {
+          console.log('Google Drive not available:', availability.reason);
+          setIsGoogleDriveEnabled(false);
+          setIsGoogleDriveAuthenticated(false);
+        }
       } catch (error) {
-        console.error('Error checking Google Drive status:', error);
+        console.log('Error checking Google Drive status:', error.message);
         setIsGoogleDriveEnabled(false);
         setIsGoogleDriveAuthenticated(false);
       } finally {
