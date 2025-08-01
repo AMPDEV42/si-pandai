@@ -108,79 +108,27 @@ console.error = function(...args) {
 `;
 
 const configWindowFetchMonkeyPatch = `
+// Simplified fetch monitoring that doesn't interfere with application logic
 const originalFetch = window.fetch;
 
 window.fetch = function(...args) {
 	const url = args[0] instanceof Request ? args[0].url : args[0];
 
-	// Skip WebSocket URLs
-	if (url.startsWith('ws:') || url.startsWith('wss:')) {
+	// Skip WebSocket URLs and Supabase URLs to avoid interference
+	if (url.startsWith('ws:') || url.startsWith('wss:') || url.includes('.supabase.co')) {
 		return originalFetch.apply(this, args);
 	}
 
+	// Only monitor non-critical requests for debugging, don't interfere with app requests
 	return originalFetch.apply(this, args)
-		.then(async response => {
-			const contentType = response.headers.get('Content-Type') || '';
-
-			// Exclude HTML document responses
-			const isDocumentResponse =
-				contentType.includes('text/html') ||
-				contentType.includes('application/xhtml+xml');
-
-			if (!response.ok && !isDocumentResponse) {
-				// Skip logging for non-actionable errors
-				const isNonActionableError =
-					response.status === 0 ||  // Blocked/cancelled requests
-					response.status === 200 || // False positive
-					response.url.includes('chrome-extension://') || // Browser extensions
-					response.url.includes('moz-extension://') || // Firefox extensions
-					response.url.includes('safari-extension://'); // Safari extensions
-
-				if (!isNonActionableError) {
-					try {
-						const responseClone = response.clone();
-						const errorFromRes = await responseClone.text();
-						const requestUrl = response.url;
-
-						// Only log if there's meaningful error content
-						if (errorFromRes && errorFromRes.trim().length > 0) {
-							console.error(\`Fetch error from \${requestUrl}: \${errorFromRes}\`);
-						} else {
-							console.error(\`Fetch error from \${requestUrl}: HTTP \${response.status} \${response.statusText}\`);
-						}
-					} catch (cloneError) {
-						// Fallback if response can't be cloned or read
-						console.error(\`Fetch error from \${response.url}: HTTP \${response.status} \${response.statusText} (response unreadable)\`);
-					}
-				}
-			}
-
-			return response;
-		})
 		.catch(error => {
-			// Only log non-HTML fetch errors with meaningful content
-			if (!url.match(/\.html?$/i)) {
-				const errorMessage = error.message || error.toString();
-
-				// Filter out common non-actionable errors and Supabase requests
-				const isNonActionableError =
-					errorMessage.includes('Load failed') ||
-					errorMessage.includes('net::ERR_BLOCKED_BY_CLIENT') ||
-					errorMessage.includes('net::ERR_NETWORK_CHANGED') ||
-					errorMessage.includes('net::ERR_INTERNET_DISCONNECTED') ||
-					errorMessage.includes('The user aborted a request') ||
-					errorMessage.includes('AbortError') ||
-					errorMessage.includes('NetworkError') ||
-					url.includes('chrome-extension://') ||
-					url.includes('moz-extension://') ||
-					url.includes('safari-extension://') ||
-					url.includes('.supabase.co'); // Don't log Supabase errors in dev
-
-				if (errorMessage && !isNonActionableError) {
-					console.error(\`Network error for \${url}:\`, errorMessage);
-				}
+			// Log for debugging but don't re-throw for non-critical requests
+			if (!url.match(/\.(js|css|html|ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/i) &&
+			    !url.includes('chrome-extension://') &&
+			    !url.includes('moz-extension://') &&
+			    !url.includes('safari-extension://')) {
+				console.debug('Network debug:', url, error.message);
 			}
-
 			throw error;
 		});
 };
