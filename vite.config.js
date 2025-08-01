@@ -128,10 +128,21 @@ window.fetch = function(...args) {
 				contentType.includes('application/xhtml+xml');
 
 			if (!response.ok && !isDocumentResponse) {
+				try {
 					const responseClone = response.clone();
 					const errorFromRes = await responseClone.text();
 					const requestUrl = response.url;
-					console.error(\`Fetch error from \${requestUrl}: \${errorFromRes}\`);
+
+					// Only log if there's meaningful error content
+					if (errorFromRes && errorFromRes.trim().length > 0) {
+						console.error(\`Fetch error from \${requestUrl}: \${errorFromRes}\`);
+					} else {
+						console.error(\`Fetch error from \${requestUrl}: HTTP \${response.status} \${response.statusText}\`);
+					}
+				} catch (cloneError) {
+					// Fallback if response can't be cloned or read
+					console.error(\`Fetch error from \${response.url}: HTTP \${response.status} \${response.statusText} (response unreadable)\`);
+				}
 			}
 
 			return response;
