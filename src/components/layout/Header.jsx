@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
-import { UserCircle, PlusCircle, Menu, LogOut, Settings, User, ChevronDown, Shield } from 'lucide-react';
+import { UserCircle, PlusCircle, Menu, LogOut, Settings, User, ChevronDown, Shield, Keyboard, HelpCircle } from 'lucide-react';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { Button } from '../ui/button';
 import {
