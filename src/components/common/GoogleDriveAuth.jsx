@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { googleDriveService } from '@/services/googleDriveService';
 import { apiLogger } from '@/lib/logger';
 import { config } from '@/config/environment';
+import DomainAuthError from '@/components/common/DomainAuthError';
 
 const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
   const [isConfigured, setIsConfigured] = useState(false);
