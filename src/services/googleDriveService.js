@@ -48,6 +48,15 @@ class GoogleDriveService {
    * Initialize Google Drive API with retry mechanism
    */
   async initialize() {
+    // Return false immediately if domain is blocked
+    if (this.isDomainBlocked) {
+      apiLogger.warn('Google Drive initialization skipped - domain authorization error', {
+        domain: window.location.origin,
+        error: this.domainAuthError
+      });
+      return false;
+    }
+
     // Return existing promise if already initializing
     if (this.initializationPromise) {
       return this.initializationPromise;
