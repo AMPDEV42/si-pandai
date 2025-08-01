@@ -64,8 +64,16 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
   const checkAuthentication = async () => {
     try {
       setIsChecking(true);
-      
+
       if (!isConfigured) {
+        setIsAuthenticated(false);
+        onAuthChange(false);
+        return false;
+      }
+
+      // Check if Google Drive is available first
+      if (!googleDriveService.isAvailable()) {
+        setIsDomainError(true);
         setIsAuthenticated(false);
         onAuthChange(false);
         return false;
@@ -77,7 +85,7 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
         const authenticated = await googleDriveService.isAuthenticated();
         setIsAuthenticated(authenticated);
         onAuthChange(authenticated);
-        
+
         if (authenticated) {
           setError(null);
           return true;
