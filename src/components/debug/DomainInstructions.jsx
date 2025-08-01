@@ -13,7 +13,7 @@ import { config } from '../../config/environment';
 const DomainInstructions = () => {
   const [copied, setCopied] = useState(false);
   const currentDomain = window.location.origin;
-  const clientId = '47138776708-suu99tvg4v2l4248ololg59hvsevpo13.apps.googleusercontent.com';
+  const clientId = config.googleDrive.clientId || 'YOUR_CLIENT_ID';
 
   const copyDomain = async () => {
     try {
