@@ -278,14 +278,28 @@ class GoogleDriveService {
         errorDetails.message.includes('domain') ||
         errorDetails.message.includes('not allowed') ||
         error?.error === 'idpiframe_initialization_failed') {
-      reject(new Error(`❌ Domain Authorization Required: The domain "${window.location.origin}" is not authorized in Google Cloud Console.
+
+      // Mark domain as blocked and store error details
+      this.isDomainBlocked = true;
+      this.domainAuthError = `Domain ${window.location.origin} not authorized`;
+
+      const errorMessage = `❌ Domain Authorization Required: The domain "${window.location.origin}" is not authorized in Google Cloud Console.
 
 📋 To fix this:
 1. Go to: https://console.cloud.google.com/apis/credentials
 2. Edit OAuth 2.0 Client ID: ${config.googleDrive.clientId || 'YOUR_CLIENT_ID'}
 3. Add to "Authorized JavaScript origins": ${window.location.origin}
 4. Add to "Authorized redirect URIs": ${window.location.origin}/auth/google/callback
-5. Save and wait 5-10 minutes for changes to propagate`));
+5. Save and wait 5-10 minutes for changes to propagate`;
+
+      // Log once at warning level to reduce noise
+      apiLogger.warn('Google Drive domain authorization required', {
+        domain: window.location.origin,
+        clientId: config.googleDrive.clientId,
+        isDomainBlocked: true
+      });
+
+      reject(new Error(errorMessage));
     } else if (errorDetails.code === 'popup_blocked_by_browser') {
       reject(new Error('❌ Popup blocked by browser. Please allow popups for this domain.'));
     } else if (!errorDetails.gapiAvailable) {
