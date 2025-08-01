@@ -161,7 +161,21 @@ window.fetch = function(...args) {
 			// Only log non-HTML fetch errors with meaningful content
 			if (!url.match(/\.html?$/i)) {
 				const errorMessage = error.message || error.toString();
-				if (errorMessage && !errorMessage.includes('Load failed') && !errorMessage.includes('net::ERR_BLOCKED_BY_CLIENT')) {
+
+				// Filter out common non-actionable errors
+				const isNonActionableError =
+					errorMessage.includes('Load failed') ||
+					errorMessage.includes('net::ERR_BLOCKED_BY_CLIENT') ||
+					errorMessage.includes('net::ERR_NETWORK_CHANGED') ||
+					errorMessage.includes('net::ERR_INTERNET_DISCONNECTED') ||
+					errorMessage.includes('The user aborted a request') ||
+					errorMessage.includes('AbortError') ||
+					errorMessage.includes('NetworkError') ||
+					url.includes('chrome-extension://') ||
+					url.includes('moz-extension://') ||
+					url.includes('safari-extension://');
+
+				if (errorMessage && !isNonActionableError) {
 					console.error(\`Network error for \${url}:\`, errorMessage);
 				}
 			}
