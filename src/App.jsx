@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { initializeFocusVisible, createSkipLink } from './utils/accessibility';
 import { 
   createBrowserRouter,
   RouterProvider,
