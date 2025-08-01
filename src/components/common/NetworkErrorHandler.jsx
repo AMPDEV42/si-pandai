@@ -192,10 +192,13 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
 
               <div>
                 <h2 className="text-xl font-semibold text-red-300 mb-2">
-                  Masalah Koneksi
+                  {networkStatus.configMissing ? 'Masalah Konfigurasi' : 'Masalah Koneksi'}
                 </h2>
                 <p className="text-red-200/80 text-sm">
-                  Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.
+                  {networkStatus.configMissing
+                    ? 'Aplikasi tidak dikonfigurasi dengan benar. Hubungi administrator untuk mengatur environment variables.'
+                    : 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.'
+                  }
                 </p>
               </div>
 
