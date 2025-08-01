@@ -286,7 +286,18 @@ class GoogleDriveService {
       auth2Available: !!window.gapi?.auth2
     };
 
-    apiLogger.error('GAPI initialization error', { error: errorDetails });
+    // Only log as error if it's not a domain authorization issue
+    if (errorDetails.message.includes('origin') ||
+        errorDetails.message.includes('domain') ||
+        errorDetails.message.includes('not allowed') ||
+        error?.error === 'idpiframe_initialization_failed') {
+      apiLogger.debug('GAPI initialization skipped - domain authorization required', {
+        domain: window.location.origin,
+        error: errorDetails
+      });
+    } else {
+      apiLogger.error('GAPI initialization error', { error: errorDetails });
+    }
 
     // Check for common issues and provide specific guidance
     if (errorDetails.message.includes('origin') ||
