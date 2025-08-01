@@ -180,7 +180,21 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
       setIsDomainError(false);
       apiLogger.info('Google Drive authentication successful');
     } catch (error) {
-      apiLogger.error('Google Drive authentication failed', error);
+      // Check if it's a domain authorization error for conditional logging
+      const isDomainError = error.message.includes('DOMAIN_AUTH_ERROR') ||
+                           error.message.includes('origin') ||
+                           error.message.includes('domain') ||
+                           error.message.includes('not allowed') ||
+                           error.message.includes('Domain authorization') ||
+                           error.message.includes('Google Drive unavailable: Domain authorization required');
+
+      if (isDomainError) {
+        apiLogger.debug('Google Drive authentication failed - domain authorization required', {
+          domain: window.location.origin
+        });
+      } else {
+        apiLogger.error('Google Drive authentication failed', error);
+      }
 
       let errorMessage = 'Gagal melakukan autentikasi Google Drive.';
       let isDomain = false;
