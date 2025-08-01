@@ -413,7 +413,8 @@ Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authoriz
     try {
       // Return false immediately if domain is blocked
       if (this.isDomainBlocked) {
-        throw new Error('Google Drive unavailable: Domain authorization required');
+        apiLogger.debug('Authentication skipped - domain authorization required');
+        return false;
       }
 
       if (!this.gapi || !this.gapi.auth2) {
