@@ -8,6 +8,9 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 const MainLayout = () => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
 
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
+
   // Close sidebar on mobile when clicking outside
   useEffect(() => {
     const handleResize = () => {
