@@ -250,6 +250,22 @@ const AppContent = () => {
 };
 
 const App = () => {
+  useEffect(() => {
+    // Initialize accessibility features
+    initializeFocusVisible();
+    createSkipLink();
+
+    // Add main content landmark
+    const mainContent = document.querySelector('main');
+    if (!mainContent) {
+      const main = document.createElement('main');
+      main.id = 'main-content';
+      main.setAttribute('role', 'main');
+      main.setAttribute('aria-label', 'Konten utama aplikasi');
+      document.body.appendChild(main);
+    }
+  }, []);
+
   return (
     <ErrorBoundary showDetails={config.isDevelopment}>
       <HelmetProvider>
