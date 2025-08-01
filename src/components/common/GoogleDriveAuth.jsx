@@ -128,7 +128,7 @@ const GoogleDriveAuth = ({ onAuthChange = () => {}, className = '' }) => {
               <p className="font-medium mb-2">Cara memperbaiki:</p>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Buka <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">Google Cloud Console</a></li>
-                <li>Edit OAuth 2.0 Client ID: 47138776708-suu99tvg4v2l4248ololg59hvsevpo13.apps.googleusercontent.com</li>
+                <li>Edit OAuth 2.0 Client ID: {config.googleDrive.clientId || 'YOUR_CLIENT_ID'}</li>
                 <li>Di bagian "Authorized JavaScript origins", tambahkan: <code className="bg-amber-900/50 px-1.5 py-0.5 rounded">{window.location.origin}</code></li>
                 <li>Di bagian "Authorized redirect URIs", tambahkan: <code className="bg-amber-900/50 px-1.5 py-0.5 rounded">{window.location.origin}/auth/google/callback</code></li>
                 <li>Simpan perubahan dan tunggu 5-10 menit</li>
