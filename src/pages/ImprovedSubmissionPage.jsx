@@ -280,19 +280,26 @@ const ImprovedSubmissionPage = () => {
   useEffect(() => {
     const checkDriveStatus = async () => {
       try {
-        const isConfigured = googleDriveService.isConfigured();
-        if (!isConfigured) {
-          console.log('Google Drive not configured');
+        // Check if Google Drive is available first
+        const availability = await checkGoogleDriveAvailability();
+        if (!availability.available) {
+          console.log('Google Drive not available:', availability.reason);
+          setIsGoogleDriveEnabled(false);
           return;
         }
-        
-        // Initialize Google Drive service
-        await googleDriveService.initialize();
-        
+
+        // Initialize Google Drive service safely
+        const initSuccess = await safeInitializeGoogleDrive();
+        if (!initSuccess) {
+          console.log('Google Drive initialization failed gracefully');
+          setIsGoogleDriveEnabled(false);
+          return;
+        }
+
         // Check authentication status
         const isAuthenticated = await googleDriveService.isAuthenticated();
         setIsGoogleDriveAuthenticated(isAuthenticated);
-        
+
         if (!isAuthenticated) {
           // Try to authenticate silently
           try {
@@ -303,7 +310,8 @@ const ImprovedSubmissionPage = () => {
           }
         }
       } catch (error) {
-        console.error('Error initializing Google Drive:', error);
+        console.log('Google Drive setup completed with warnings:', error.message);
+        setIsGoogleDriveEnabled(false);
       }
     };
 
