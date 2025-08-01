@@ -257,7 +257,14 @@ class GoogleDriveService {
 
       return false;
     } catch (error) {
-      apiLogger.error('Failed to check authentication status', error);
+      // Only log as error if it's not a domain authorization issue
+      if (error.message?.includes('Domain Authorization Required')) {
+        apiLogger.debug('Authentication check skipped - domain not authorized', {
+          domain: window.location.origin
+        });
+      } else {
+        apiLogger.error('Failed to check authentication status', error);
+      }
       return false;
     }
   }
