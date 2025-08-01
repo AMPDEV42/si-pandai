@@ -443,6 +443,10 @@ const GoogleDriveTestPage = () => {
           <div className="max-w-2xl mx-auto">
             <SupabaseFetchTest />
           </div>
+        ) : activeTab === 'integration' ? (
+          <div className="max-w-2xl mx-auto">
+            <GoogleDriveIntegrationTest />
+          </div>
         ) : activeTab === 'upload' ? (
           <div className="space-y-6">
             <GoogleDriveUploadTest />
