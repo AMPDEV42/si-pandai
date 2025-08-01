@@ -3,6 +3,8 @@
  * Quick test to verify domain authorization issues
  */
 
+import { config } from '../config/environment';
+
 export const testGoogleDriveSimple = async () => {
   console.log('🔍 Testing Google Drive Domain Authorization...');
   console.log('📍 Current Domain:', window.location.origin);
