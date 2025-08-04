@@ -17,31 +17,46 @@ class GoogleDriveService {
     this.maxRetries = 3;
     this.domainAuthError = null; // Track domain authorization errors
     this.isDomainBlocked = false; // Flag to prevent repeated attempts
+    this.lastConfigCheck = 0; // Throttle config checks
+    this.configCheckCache = null; // Cache config result
   }
 
   /**
    * Check if Google Drive is properly configured
    */
   isConfigured() {
+    // Throttle config checks to reduce console spam
+    const now = Date.now();
+    if (this.configCheckCache !== null && (now - this.lastConfigCheck) < 5000) {
+      return this.configCheckCache;
+    }
+
     const hasApiKey = !!config.googleDrive.apiKey;
     const hasClientId = !!config.googleDrive.clientId;
     const isEnabled = config.googleDrive.enabled;
 
-    apiLogger.debug('Google Drive configuration check', {
-      hasApiKey,
-      hasClientId,
-      isEnabled,
-      isDomainBlocked: this.isDomainBlocked,
-      apiKeyLength: config.googleDrive.apiKey?.length || 0,
-      clientIdLength: config.googleDrive.clientId?.length || 0
-    });
+    // Only log config check every 5 seconds
+    if ((now - this.lastConfigCheck) >= 5000) {
+      apiLogger.debug('Google Drive configuration check', {
+        hasApiKey,
+        hasClientId,
+        isEnabled,
+        isDomainBlocked: this.isDomainBlocked,
+        apiKeyLength: config.googleDrive.apiKey?.length || 0,
+        clientIdLength: config.googleDrive.clientId?.length || 0
+      });
+      this.lastConfigCheck = now;
+    }
 
     // Return false if domain is blocked to prevent repeated attempts
     if (this.isDomainBlocked) {
+      this.configCheckCache = false;
       return false;
     }
 
-    return isEnabled && hasApiKey && hasClientId;
+    const result = isEnabled && hasApiKey && hasClientId;
+    this.configCheckCache = result;
+    return result;
   }
 
   /**
