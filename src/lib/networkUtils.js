@@ -109,17 +109,18 @@ export const checkNetworkConnectivity = async () => {
     };
   }
 
-  // In production, skip external endpoint tests to prevent CSP and fetch errors
+  // Skip external endpoint tests in all environments to prevent CSP violations
+  const isDevelopment = import.meta.env.DEV;
   const isProduction = import.meta.env.PROD;
-  if (isProduction) {
-    return {
-      isOnline: true,
-      connectivity: 1,
-      reason: 'Assumed online in production environment',
-      method: 'production-assumption',
-      note: 'External connectivity tests disabled in production to prevent CSP violations'
-    };
-  }
+
+  // Use navigator.onLine for basic connectivity in all environments
+  return {
+    isOnline: navigator.onLine,
+    connectivity: navigator.onLine ? 1 : 0,
+    reason: isDevelopment ? 'Dev environment - using navigator only' : 'Production environment - using navigator only',
+    method: 'navigator-only',
+    note: 'External connectivity tests disabled to prevent CSP violations'
+  };
 
   try {
     // Second check: test multiple endpoints (development only)
