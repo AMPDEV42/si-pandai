@@ -77,20 +77,19 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
         const isProduction = import.meta.env.PROD;
         const isNetworkError = connectivityError.message?.includes('Failed to fetch') || connectivityError.name === 'TypeError';
 
-        // Create a safe fallback status
+        // Create a safe fallback status - assume online to prevent app blocking
         connectivityStatus = {
-          isOnline: navigator.onLine,
-          status: isNetworkError ? 'connectivity-check-failed' : 'unknown-error',
+          isOnline: true, // Always assume online to prevent blocking
+          status: isNetworkError ? 'connectivity-check-failed-fallback' : 'unknown-error-fallback',
           details: {
             network: { isOnline: navigator.onLine },
             supabase: {
-              isReachable: isDevelopment, // Assume reachable in dev
+              isReachable: true, // Assume reachable in all environments
               error: connectivityError.message
             }
           },
-          issues: isDevelopment
-            ? [`Connectivity check failed (dev): ${connectivityError.message}`]
-            : ['Connectivity check temporarily unavailable']
+          issues: [],
+          note: 'Connectivity check failed but assumed online to prevent app blocking'
         };
 
         // Log but don't throw in production to prevent app breakage
