@@ -38,6 +38,9 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     setNetworkStatus(prev => ({ ...prev, isChecking: true }));
 
     try {
+      // In production, use a more conservative approach to avoid fetch errors
+      const isProduction = import.meta.env.PROD;
+
       // Check if environment variables are configured
       const hasSupabaseConfig = config.supabase.url && config.supabase.anonKey;
 
