@@ -89,7 +89,7 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
 
       let connectivityStatus;
       try {
-        connectivityStatus = await getConnectivityStatus(
+        connectivityStatus = await getSimpleConnectivityStatus(
           config.supabase.url,
           config.supabase.anonKey
         );
