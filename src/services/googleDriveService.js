@@ -162,7 +162,7 @@ class GoogleDriveService {
                 }
 
                 if (!window.gapi.client) {
-                  throw new Error('GAPI client modules not loaded properly. Try refreshing the page.');
+                  throw new Error('GAPI client modules not loaded properly. This may be due to CSP restrictions.');
                 }
 
                 apiLogger.info('Starting GAPI client initialization', {
@@ -170,7 +170,8 @@ class GoogleDriveService {
                   hasClient: !!window.gapi.client,
                   hasAuth2: !!window.gapi.auth2,
                   apiKeyLength: config.googleDrive.apiKey?.length,
-                  clientIdLength: config.googleDrive.clientId?.length
+                  clientIdLength: config.googleDrive.clientId?.length,
+                  currentOrigin: window.location.origin
                 });
 
                 // First initialize the client without auth parameters
@@ -181,10 +182,12 @@ class GoogleDriveService {
 
                 apiLogger.info('GAPI client initialized, now initializing auth2');
 
-                // Then initialize auth2 separately
+                // Then initialize auth2 separately with explicit iframe policy
                 await window.gapi.auth2.init({
                   client_id: config.googleDrive.clientId,
-                  scope: config.googleDrive.scope
+                  scope: config.googleDrive.scope,
+                  // Configure iframe settings for better CSP compliance
+                  iframe_policy: 'allow-scripts allow-same-origin allow-storage-access-by-user-activation'
                 });
 
                 this.gapi = window.gapi;
@@ -201,15 +204,16 @@ class GoogleDriveService {
               clearTimeout(timeout);
               const errorDetails = {
                 name: error?.name || 'Unknown',
-                message: error?.message || 'Failed to load GAPI modules',
-                code: error?.code || 'GAPI_LOAD_ERROR'
+                message: error?.message || 'Failed to load GAPI modules - possible CSP violation',
+                code: error?.code || 'GAPI_LOAD_ERROR',
+                suggestion: 'Check Content Security Policy configuration'
               };
               apiLogger.error('Failed to load GAPI modules', { error: errorDetails });
-              reject(new Error(`Failed to load GAPI modules: ${errorDetails.message}`));
+              reject(new Error(`Failed to load GAPI modules: ${errorDetails.message}. ${errorDetails.suggestion}`));
             },
-            timeout: 10000,
+            timeout: 15000, // Increased timeout for better reliability
             ontimeout: () => {
-              const errorMsg = 'Timed out while loading GAPI modules. Check your internet connection.';
+              const errorMsg = 'Timed out while loading GAPI modules. This may be due to CSP restrictions or network issues.';
               apiLogger.error(errorMsg);
               reject(new Error(errorMsg));
             }
@@ -277,7 +281,7 @@ class GoogleDriveService {
   }
 
   /**
-   * Handle GAPI initialization errors with specific guidance
+   * Handle GAPI initialization errors with specific guidance including CSP issues
    */
   handleGapiError(error, reject) {
     const errorDetails = {
@@ -290,15 +294,32 @@ class GoogleDriveService {
       currentDomain: window.location.origin,
       gapiAvailable: !!window.gapi,
       clientAvailable: !!window.gapi?.client,
-      auth2Available: !!window.gapi?.auth2
+      auth2Available: !!window.gapi?.auth2,
+      userAgent: navigator.userAgent,
+      protocol: window.location.protocol
     };
 
-    // Only log as error if it's not a domain authorization issue
-    if (errorDetails.message.includes('origin') ||
-        errorDetails.message.includes('domain') ||
-        errorDetails.message.includes('not allowed') ||
-        error?.error === 'idpiframe_initialization_failed') {
+    // Check for CSP-related errors
+    const isCspError = errorDetails.message.includes('CSP') ||
+                      errorDetails.message.includes('Content Security Policy') ||
+                      errorDetails.message.includes('script-src') ||
+                      errorDetails.message.includes('frame-src') ||
+                      errorDetails.code === 'CSP_VIOLATION';
+
+    // Check for domain authorization errors
+    const isDomainError = errorDetails.message.includes('origin') ||
+                         errorDetails.message.includes('domain') ||
+                         errorDetails.message.includes('not allowed') ||
+                         error?.error === 'idpiframe_initialization_failed';
+
+    // Log appropriately based on error type
+    if (isDomainError) {
       apiLogger.debug('GAPI initialization skipped - domain authorization required', {
+        domain: window.location.origin,
+        error: errorDetails
+      });
+    } else if (isCspError) {
+      apiLogger.warn('GAPI initialization failed - CSP issue detected', {
         domain: window.location.origin,
         error: errorDetails
       });
@@ -306,12 +327,26 @@ class GoogleDriveService {
       apiLogger.error('GAPI initialization error', { error: errorDetails });
     }
 
-    // Check for common issues and provide specific guidance
-    if (errorDetails.message.includes('origin') ||
-        errorDetails.message.includes('domain') ||
-        errorDetails.message.includes('not allowed') ||
-        error?.error === 'idpiframe_initialization_failed') {
+    // Handle CSP-related errors
+    if (isCspError) {
+      const errorMessage = `🔒 Content Security Policy Error: Google API scripts are blocked by CSP.
 
+📋 To fix this:
+1. Update your Content Security Policy to allow:
+   - script-src: 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://www.gstatic.com
+   - frame-src: https://accounts.google.com https://content.googleapis.com
+   - connect-src: https://*.googleapis.com https://accounts.google.com
+
+2. If using Vercel, update vercel.json headers
+3. If using meta tags, update index.html CSP directives
+4. Allow iframe sandbox attributes: allow-scripts allow-same-origin`;
+
+      reject(new Error(errorMessage));
+      return;
+    }
+
+    // Handle domain authorization errors
+    if (isDomainError) {
       // Mark domain as blocked and store error details
       this.isDomainBlocked = true;
       this.domainAuthError = `Domain ${window.location.origin} not authorized`;
@@ -323,7 +358,9 @@ class GoogleDriveService {
 2. Edit OAuth 2.0 Client ID: ${config.googleDrive.clientId || 'YOUR_CLIENT_ID'}
 3. Add to "Authorized JavaScript origins": ${window.location.origin}
 4. Add to "Authorized redirect URIs": ${window.location.origin}/auth/google/callback
-5. Save and wait 5-10 minutes for changes to propagate`;
+5. Save and wait 5-10 minutes for changes to propagate
+
+💡 Note: Ensure your Content Security Policy also allows Google's domains.`;
 
       // Log once at warning level to reduce noise
       apiLogger.warn('Google Drive domain authorization required', {
@@ -336,23 +373,26 @@ class GoogleDriveService {
     } else if (errorDetails.code === 'popup_blocked_by_browser') {
       reject(new Error('❌ Popup blocked by browser. Please allow popups for this domain.'));
     } else if (!errorDetails.gapiAvailable) {
-      reject(new Error('❌ Google API script not loaded. Check network connectivity and try again.'));
+      reject(new Error('❌ Google API script not loaded. Check CSP configuration and network connectivity.'));
     } else if (!errorDetails.clientAvailable) {
-      reject(new Error('❌ GAPI client modules not loaded properly. Try refreshing the page.'));
+      reject(new Error('❌ GAPI client modules not loaded properly. This may be due to CSP restrictions. Try refreshing the page.'));
     } else if (errorDetails.message === 'No message' || errorDetails.message === '') {
-      reject(new Error(`⚠️ Google API initialization failed silently. This usually indicates domain authorization issues.
+      reject(new Error(`⚠️ Google API initialization failed silently. This usually indicates domain authorization or CSP issues.
 
 🔍 Current domain: ${window.location.origin}
-💡 Most likely cause: Domain not authorized in Google Cloud Console OAuth settings.
+💡 Possible causes:
+- Domain not authorized in Google Cloud Console OAuth settings
+- Content Security Policy blocking Google scripts
+- Network connectivity issues
 
-Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authorized origins.`));
+Please check both OAuth configuration and CSP settings.`));
     } else {
-      reject(new Error(`❌ GAPI initialization failed: ${errorDetails.message || errorDetails.code || 'Unknown error'}`));
+      reject(new Error(`❌ GAPI initialization failed: ${errorDetails.message || errorDetails.code || 'Unknown error'}. Check CSP and OAuth configuration.`));
     }
   }
 
   /**
-   * Load Google API script with retry mechanism
+   * Load Google API script with retry mechanism and CSP compliance
    */
   loadGoogleAPI() {
     return new Promise((resolve, reject) => {
@@ -369,12 +409,13 @@ Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authoriz
         existingScript.addEventListener('load', resolve);
         existingScript.addEventListener('error', (error) => {
           const errorDetails = {
-            message: 'Google API script failed to load',
+            message: 'Google API script failed to load - possible CSP violation',
             src: existingScript.src,
-            error: error.toString()
+            error: error.toString(),
+            suggestion: 'Check Content Security Policy allows scripts from googleapis.com'
           };
           apiLogger.error('Existing Google API script failed to load', errorDetails);
-          reject(new Error(`Google API script load failed: ${errorDetails.message}`));
+          reject(new Error(`Google API script load failed: ${errorDetails.message}. ${errorDetails.suggestion}`));
         });
         return;
       }
@@ -385,20 +426,32 @@ Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authoriz
       script.async = true;
       script.defer = true;
 
+      // Add CSP-friendly attributes
+      script.crossOrigin = 'anonymous';
+      script.referrerPolicy = 'strict-origin-when-cross-origin';
+
+      const timeout = setTimeout(() => {
+        apiLogger.error('Google API script load timeout - possible CSP or network issue');
+        reject(new Error('Google API script load timeout. Check Content Security Policy allows scripts from googleapis.com and accounts.google.com'));
+      }, 10000);
+
       script.onload = () => {
+        clearTimeout(timeout);
         apiLogger.info('Google API script loaded successfully');
         resolve();
       };
 
       script.onerror = (error) => {
+        clearTimeout(timeout);
         const errorDetails = {
-          message: 'Failed to load Google API script',
+          message: 'Failed to load Google API script - possible CSP violation',
           src: script.src,
           error: error.toString(),
-          type: error.type || 'unknown'
+          type: error.type || 'unknown',
+          suggestion: 'Ensure CSP allows scripts from googleapis.com'
         };
         apiLogger.error('Failed to load Google API script', errorDetails);
-        reject(new Error(`Google API script load failed: ${errorDetails.message}`));
+        reject(new Error(`Google API script load failed: ${errorDetails.message}. ${errorDetails.suggestion}`));
       };
 
       document.head.appendChild(script);
@@ -427,10 +480,20 @@ Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authoriz
         throw new Error('Google Auth2 not initialized');
       }
 
-      // Always try silent authentication first
+      // Always try silent authentication first with improved error handling
       const googleUser = await auth2.signInSilently();
-      this.accessToken = googleUser.getAuthResponse().access_token;
-      apiLogger.info('Successfully authenticated with Google Drive');
+      const authResponse = googleUser.getAuthResponse();
+
+      if (!authResponse || !authResponse.access_token) {
+        throw new Error('Failed to get access token from Google authentication');
+      }
+
+      this.accessToken = authResponse.access_token;
+      apiLogger.info('Successfully authenticated with Google Drive', {
+        hasToken: !!this.accessToken,
+        tokenLength: this.accessToken?.length || 0,
+        expiresIn: authResponse.expires_in
+      });
       return true;
       
     } catch (error) {
