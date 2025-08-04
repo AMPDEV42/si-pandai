@@ -203,6 +203,14 @@ const AppContent = () => {
             ),
           },
           {
+            path: "/debug/google-drive",
+            element: (
+              <ProtectedRoute allowedRoles={['admin-master']}>
+                <GoogleDriveDiagnostic />
+              </ProtectedRoute>
+            ),
+          },
+          {
             path: "/",
             element: <InitialRedirect />,
           },
