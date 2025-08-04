@@ -27,6 +27,13 @@ const GoogleDriveInit = ({ onStatusChange = () => {} }) => {
 
   const initializeGoogleDrive = async () => {
     try {
+      // Throttle initialization attempts
+      const now = Date.now();
+      if ((now - lastInitAttempt) < INIT_THROTTLE) {
+        return;
+      }
+      lastInitAttempt = now;
+
       setIsInitializing(true);
       setError(null);
       setStatus('checking');
