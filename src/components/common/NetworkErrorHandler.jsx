@@ -21,7 +21,7 @@ import {
   isOnline,
   setupNetworkListeners
 } from '../../lib/networkChecker';
-import { getConnectivityStatus } from '../../lib/networkUtils';
+import { getSimpleConnectivityStatus } from '../../lib/simpleNetworkChecker';
 import { config } from '../../config/environment';
 
 const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
