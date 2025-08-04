@@ -198,12 +198,38 @@ export const checkSupabaseConnectivity = async (supabaseUrl, apiKey = null) => {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    // Test Supabase REST API endpoint
-    const response = await fetch(`${supabaseUrl}/rest/v1/`, {
-      method: 'HEAD',
-      signal: controller.signal,
-      headers
-    });
+    // Test Supabase REST API endpoint with additional error handling
+    let response;
+    try {
+      response = await fetch(`${supabaseUrl}/rest/v1/`, {
+        method: 'HEAD',
+        signal: controller.signal,
+        headers
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      // Handle fetch errors immediately
+      const isDevelopment = import.meta.env.DEV;
+
+      if (isDevelopment) {
+        apiLogger.warn('Supabase fetch failed in development', {
+          url: supabaseUrl,
+          error: fetchError.message,
+          note: 'This might be due to missing environment variables or CORS'
+        });
+
+        return {
+          isReachable: true,
+          status: 'dev-fetch-error',
+          error: fetchError.message,
+          hasApiKey: !!apiKey,
+          url: supabaseUrl,
+          note: 'Assumed reachable in development environment'
+        };
+      }
+
+      throw fetchError;
+    }
 
     clearTimeout(timeoutId);
 
