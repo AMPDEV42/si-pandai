@@ -56,9 +56,9 @@ const GoogleDriveInit = ({ onStatusChange = () => {} }) => {
 
   const handleInitializationError = (error) => {
     const errorMessage = error.message || 'Unknown error';
-    
+
     // Detect CSP-related errors
-    if (errorMessage.includes('CSP') || 
+    if (errorMessage.includes('CSP') ||
         errorMessage.includes('Content Security Policy') ||
         errorMessage.includes('script-src') ||
         errorMessage.includes('frame-src') ||
@@ -66,7 +66,7 @@ const GoogleDriveInit = ({ onStatusChange = () => {} }) => {
       setStatus('csp-error');
       setError('Content Security Policy memblokir Google Drive. Konfigurasi CSP diperlukan.');
       onStatusChange(false, 'csp-blocked');
-      apiLogger.warn('Google Drive blocked by CSP', { error: errorMessage });
+      apiLogger.debug('Google Drive blocked by CSP', { error: errorMessage });
       return;
     }
 
@@ -87,7 +87,7 @@ const GoogleDriveInit = ({ onStatusChange = () => {} }) => {
     setStatus('failed');
     setError(errorMessage);
     onStatusChange(false, 'error');
-    apiLogger.error('Google Drive initialization failed', error);
+    apiLogger.debug('Google Drive initialization failed', error);
   };
 
   const handleRetry = () => {
