@@ -168,13 +168,30 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
   };
 
   useEffect(() => {
-    // Initial check
-    checkConnectivity();
+    // Safe initial check with error boundary
+    const safeCheckConnectivity = async () => {
+      try {
+        await checkConnectivity();
+      } catch (error) {
+        console.warn('Initial connectivity check failed:', error.message);
+        // Set a safe default state
+        setNetworkStatus({
+          isOnline: navigator.onLine,
+          isChecking: false,
+          lastCheck: new Date(),
+          supabaseReachable: false,
+          configMissing: true,
+          error: error.message
+        });
+      }
+    };
+
+    safeCheckConnectivity();
 
     // Setup network listeners
     const cleanup = setupNetworkListeners(
       () => {
-        setTimeout(checkConnectivity, 1000);
+        setTimeout(safeCheckConnectivity, 1000);
       },
       () => {
         setNetworkStatus(prev => ({ ...prev, isOnline: false }));
@@ -185,7 +202,7 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     // Periodic check every 30 seconds if offline
     const interval = setInterval(() => {
       if (!networkStatus.isOnline) {
-        checkConnectivity();
+        safeCheckConnectivity();
       }
     }, 30000);
 
