@@ -5,7 +5,7 @@ import { sendNotification } from '../services/notificationService';
 import { authLogger } from '../lib/logger';
 import { validateEmail, validatePassword, validateUserRegistration } from '../lib/validation';
 import { getErrorMessage, getRecoverySuggestion, categorizeError, ERROR_TYPES } from '../constants/errorTypes';
-import { retryWithBackoff, checkNetworkConnectivity } from '../lib/networkChecker';
+
 
 const AuthContext = createContext(undefined);
 
