@@ -28,6 +28,7 @@ import { useToast } from '../components/ui/use-toast';
 import EmployeeSelection from '../components/submission/EmployeeSelection';
 import RequirementUpload from '../components/submission/RequirementUpload';
 import GoogleDriveAuth from '../components/common/GoogleDriveAuth';
+import GoogleDriveInit from '../components/common/GoogleDriveInit';
 import { getSubmissionTypeById } from '../data/submissionTypes';
 import { testGoogleDriveUpload, getGoogleDriveStatus } from '../utils/googleDriveTest';
 import { submissionService } from '../services/submissionService';
