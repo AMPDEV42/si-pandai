@@ -255,7 +255,7 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     };
   }, [networkStatus.isOnline]);
 
-  if (showNetworkError && !networkStatus.isOnline) {
+  if (showNetworkError && !networkStatus.isOnline && !navigator.onLine) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-900 flex items-center justify-center p-4">
         <motion.div
