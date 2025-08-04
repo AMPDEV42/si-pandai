@@ -15,6 +15,21 @@ export const SidebarProvider = ({ children }) => {
     setIsSidebarOpen(prev => !prev);
   };
 
+  // Handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      // Auto-close on mobile, auto-open on desktop
+      if (window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
       {children}
