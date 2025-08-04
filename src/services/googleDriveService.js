@@ -19,6 +19,8 @@ class GoogleDriveService {
     this.isDomainBlocked = false; // Flag to prevent repeated attempts
     this.lastConfigCheck = 0; // Throttle config checks
     this.configCheckCache = null; // Cache config result
+    this.lastWarningTime = 0; // Rate limit warnings
+    this.warningShown = false; // Track if warning was shown
   }
 
   /**
@@ -377,12 +379,17 @@ class GoogleDriveService {
 
 💡 Note: Ensure your Content Security Policy also allows Google's domains.`;
 
-      // Log once at warning level to reduce noise
-      apiLogger.warn('Google Drive domain authorization required', {
-        domain: window.location.origin,
-        clientId: config.googleDrive.clientId,
-        isDomainBlocked: true
-      });
+      // Rate limit warnings to reduce spam
+      const now = Date.now();
+      if (!this.warningShown || (now - this.lastWarningTime) > 60000) { // Only warn once per minute
+        apiLogger.warn('Google Drive domain authorization required', {
+          domain: window.location.origin,
+          clientId: config.googleDrive.clientId,
+          isDomainBlocked: true
+        });
+        this.lastWarningTime = now;
+        this.warningShown = true;
+      }
 
       reject(new Error(errorMessage));
     } else if (errorDetails.code === 'popup_blocked_by_browser') {
