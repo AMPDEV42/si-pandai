@@ -73,11 +73,7 @@ const ProtectedRoute = ({
   }
 
   // Add user activity logging
-  useEffect(() => {
-    if (user) {
-      console.log(`User ${user.email} (${userRole}) accessed ${location.pathname}`);
-    }
-  }, [location.pathname, user, userRole]);
+  // User access logging moved to server-side for better security and reduced console noise
 
   // If user is authenticated and has required role, render children
   return children;
