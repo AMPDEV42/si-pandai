@@ -25,6 +25,14 @@ import {
   Building2
 } from 'lucide-react';
 
+// Cache for dashboard data to prevent multiple loads
+let dashboardCache = {
+  data: null,
+  timestamp: 0,
+  loading: false
+};
+const CACHE_DURATION = 30000; // 30 seconds
+
 const AdminMasterDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -50,6 +58,21 @@ const AdminMasterDashboard = () => {
         setIsLoading(true);
         setError(null);
 
+        // Check cache first
+        const now = Date.now();
+        if (dashboardCache.data && (now - dashboardCache.timestamp) < CACHE_DURATION) {
+          setSubmissions(dashboardCache.data.submissions);
+          setStats(dashboardCache.data.stats);
+          setIsLoading(false);
+          return;
+        }
+
+        // Prevent multiple concurrent loads
+        if (dashboardCache.loading) {
+          return;
+        }
+        dashboardCache.loading = true;
+
         // Load submissions and statistics
         const [submissionsResult, statsResult] = await Promise.all([
           submissionService.getSubmissions({ limit: 50 }),
@@ -64,14 +87,28 @@ const AdminMasterDashboard = () => {
           throw new Error(statsResult.error.message);
         }
 
-        setSubmissions(submissionsResult.data || []);
-        setStats(statsResult.data || {
+        const submissionsData = submissionsResult.data || [];
+        const statsData = statsResult.data || {
           total: 0, pending: 0, approved: 0, rejected: 0, revision: 0
-        });
+        };
+
+        setSubmissions(submissionsData);
+        setStats(statsData);
+
+        // Cache the results
+        dashboardCache = {
+          data: {
+            submissions: submissionsData,
+            stats: statsData
+          },
+          timestamp: now,
+          loading: false
+        };
 
         apiLogger.info('Dashboard data loaded successfully', {
-          submissionsCount: submissionsResult.data?.length || 0,
-          stats: statsResult.data
+          submissionsCount: submissionsData.length,
+          stats: statsData,
+          cached: false
         });
 
       } catch (err) {
