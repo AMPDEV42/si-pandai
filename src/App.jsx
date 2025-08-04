@@ -35,6 +35,7 @@ import EmployeeEditPage from './pages/EmployeeEditPage';
 import DataPegawai from './pages/pegawai/index.jsx';
 import GoogleDriveTestPage from './pages/GoogleDriveTestPage';
 import SupabaseMonitor from './components/debug/SupabaseMonitor';
+import GoogleDriveDiagnostic from './components/debug/GoogleDriveDiagnostic';
 
 // Component to handle initial redirect
 const InitialRedirect = () => {
