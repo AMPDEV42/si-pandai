@@ -112,6 +112,7 @@ const AdminMasterDashboard = () => {
         });
 
       } catch (err) {
+        dashboardCache.loading = false;
         apiLogger.error('Failed to load dashboard data', err);
         setError('Gagal memuat data dashboard. Silakan coba lagi.');
         setSubmissions([]);
