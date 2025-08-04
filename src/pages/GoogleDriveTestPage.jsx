@@ -22,6 +22,7 @@ import { Badge } from '../components/ui/badge';
 import GoogleDriveAuth from '../components/common/GoogleDriveAuth';
 import GoogleDriveTestRunner from '../components/test/GoogleDriveTestRunner';
 import GoogleDriveUploadTest from '../components/test/GoogleDriveUploadTest';
+import GoogleDriveIntegrationTest from '../components/test/GoogleDriveIntegrationTest';
 import SupabaseFetchTest from '../components/test/SupabaseFetchTest';
 import { googleDriveService } from '../services/googleDriveService';
 import { apiLogger } from '../lib/logger';
@@ -404,6 +405,16 @@ const GoogleDriveTestPage = () => {
               Upload Test
             </button>
             <button
+              onClick={() => setActiveTab('integration')}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                activeTab === 'integration'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              Simple Test
+            </button>
+            <button
               onClick={() => setActiveTab('supabase')}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                 activeTab === 'supabase'
@@ -431,6 +442,10 @@ const GoogleDriveTestPage = () => {
         ) : activeTab === 'supabase' ? (
           <div className="max-w-2xl mx-auto">
             <SupabaseFetchTest />
+          </div>
+        ) : activeTab === 'integration' ? (
+          <div className="max-w-2xl mx-auto">
+            <GoogleDriveIntegrationTest />
           </div>
         ) : activeTab === 'upload' ? (
           <div className="space-y-6">

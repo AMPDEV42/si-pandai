@@ -26,16 +26,25 @@ class ConfigError extends Error {
 
 const validateEnvironment = () => {
   const missing = requiredEnvVars.filter(varName => !import.meta.env[varName]);
-  
+
   if (missing.length > 0) {
+    const isDevelopment = import.meta.env.DEV;
+
+    if (isDevelopment) {
+      console.warn('⚠️ Missing required environment variables in development:', missing.join(', '));
+      console.warn('📝 Create a .env file based on .env.example to resolve this warning');
+      return false; // Don't throw in development
+    }
+
     throw new ConfigError(
       `Missing required environment variables: ${missing.join(', ')}`
     );
   }
+  return true;
 };
 
 // Validate environment on module load
-validateEnvironment();
+const isValidEnvironment = validateEnvironment();
 
 // Debug environment variables in development
 if (import.meta.env.DEV) {

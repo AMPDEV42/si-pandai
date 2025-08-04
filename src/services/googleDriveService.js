@@ -454,7 +454,306 @@ Please add this domain to your Google Cloud Console OAuth 2.0 Client ID authoriz
     }
   }
 
-  // ... (other methods remain the same)
+  /**
+   * Find or create folder by name with error handling
+   */
+  async findOrCreateFolder(folderName, parentFolderId = null) {
+    try {
+      await this.ensureAuthenticated();
+
+      // Sanitize folder name
+      const sanitizedName = folderName.replace(/[<>:"/\\|?*]/g, '_').trim();
+      if (!sanitizedName) {
+        throw new Error('Invalid folder name');
+      }
+
+      // Search for existing folder
+      let query = `name='${sanitizedName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      if (parentFolderId) {
+        query += ` and '${parentFolderId}' in parents`;
+      }
+
+      const response = await this.gapi.client.drive.files.list({
+        q: query,
+        fields: 'files(id, name)',
+        pageSize: 10
+      });
+
+      const folders = response.result.files;
+
+      if (folders && folders.length > 0) {
+        apiLogger.debug('Found existing folder', {
+          folderName: sanitizedName,
+          folderId: folders[0].id
+        });
+        return folders[0].id;
+      }
+
+      // Create new folder if not found
+      const folderMetadata = {
+        name: sanitizedName,
+        mimeType: 'application/vnd.google-apps.folder'
+      };
+
+      if (parentFolderId) {
+        folderMetadata.parents = [parentFolderId];
+      }
+
+      const createResponse = await this.gapi.client.drive.files.create({
+        resource: folderMetadata,
+        fields: 'id, name'
+      });
+
+      const folderId = createResponse.result.id;
+      apiLogger.info('Created new folder', {
+        folderName: sanitizedName,
+        folderId,
+        parentFolderId
+      });
+
+      return folderId;
+
+    } catch (error) {
+      apiLogger.error('Failed to find or create folder', {
+        folderName,
+        parentFolderId,
+        error: error.message
+      });
+      throw new Error(`Gagal membuat folder "${folderName}": ${error.message}`);
+    }
+  }
+
+  /**
+   * Create folder structure for submission with validation
+   */
+  async createSubmissionFolderStructure(submissionType, employeeName) {
+    try {
+      if (!submissionType?.category) {
+        throw new Error('Submission type category is required');
+      }
+
+      if (!employeeName?.trim()) {
+        throw new Error('Employee name is required');
+      }
+
+      await this.ensureAuthenticated();
+
+      // Create main SIPANDAI folder
+      const mainFolderId = await this.findOrCreateFolder('SIPANDAI');
+
+      // Create category folder (e.g., "Pemberhentian", "Pengangkatan")
+      const categoryFolderId = await this.findOrCreateFolder(
+        submissionType.category,
+        mainFolderId
+      );
+
+      // Create employee folder
+      const sanitizedEmployeeName = employeeName.trim().replace(/[<>:"/\\|?*]/g, '_');
+      const employeeFolderId = await this.findOrCreateFolder(
+        sanitizedEmployeeName,
+        categoryFolderId
+      );
+
+      apiLogger.info('Submission folder structure created successfully', {
+        submissionCategory: submissionType.category,
+        employeeName: sanitizedEmployeeName,
+        folderIds: {
+          main: mainFolderId,
+          category: categoryFolderId,
+          employee: employeeFolderId
+        }
+      });
+
+      return {
+        mainFolderId,
+        categoryFolderId,
+        employeeFolderId
+      };
+
+    } catch (error) {
+      apiLogger.error('Failed to create submission folder structure', {
+        submissionType: submissionType?.category,
+        employeeName,
+        error: error.message
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Upload file to Google Drive with retry mechanism
+   */
+  async uploadFile(file, folderId, fileName = null) {
+    let attempt = 0;
+
+    while (attempt < this.maxRetries) {
+      try {
+        await this.ensureAuthenticated();
+
+        if (!file || !folderId) {
+          throw new Error('File and folder ID are required');
+        }
+
+        // Validate file
+        this.validateFile(file);
+
+        // Sanitize filename
+        const sanitizedFileName = this.sanitizeFileName(fileName || file.name);
+
+        const metadata = {
+          name: sanitizedFileName,
+          parents: [folderId]
+        };
+
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', file);
+
+        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,webContentLink,size,createdTime', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`
+          },
+          body: form
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+
+        const result = await response.json();
+
+        apiLogger.info('File uploaded to Google Drive successfully', {
+          fileName: result.name,
+          fileId: result.id,
+          folderId,
+          fileSize: file.size
+        });
+
+        return {
+          id: result.id,
+          name: result.name,
+          webViewLink: result.webViewLink,
+          webContentLink: result.webContentLink,
+          size: file.size,
+          type: file.type,
+          uploadedAt: new Date().toISOString(),
+          source: 'google-drive'
+        };
+
+      } catch (error) {
+        attempt++;
+        apiLogger.error(`File upload attempt ${attempt} failed`, {
+          fileName: fileName || file.name,
+          folderId,
+          error: error.message,
+          attempt
+        });
+
+        if (attempt >= this.maxRetries) {
+          throw new Error(`Gagal upload file setelah ${this.maxRetries} percobaan: ${error.message}`);
+        }
+
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      }
+    }
+  }
+
+  /**
+   * Delete file from Google Drive
+   */
+  async deleteFile(fileId) {
+    try {
+      await this.ensureAuthenticated();
+
+      if (!fileId) {
+        throw new Error('File ID is required');
+      }
+
+      await this.gapi.client.drive.files.delete({
+        fileId: fileId
+      });
+
+      apiLogger.info('File deleted from Google Drive', { fileId });
+
+    } catch (error) {
+      apiLogger.error('Failed to delete file from Google Drive', {
+        fileId,
+        error: error.message
+      });
+      throw new Error(`Gagal menghapus file: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get file download URL
+   */
+  getFileDownloadUrl(fileId) {
+    if (!fileId) {
+      throw new Error('File ID is required');
+    }
+    return `https://drive.google.com/file/d/${fileId}/view`;
+  }
+
+  /**
+   * Validate file before upload
+   */
+  validateFile(file) {
+    if (!file) {
+      throw new Error('File is required');
+    }
+
+    const maxSize = config.security.maxFileSize;
+    if (file.size > maxSize) {
+      throw new Error(`File terlalu besar. Maksimal ${Math.round(maxSize / 1024 / 1024)}MB`);
+    }
+
+    const allowedTypes = config.security.allowedFileTypes;
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Tipe file tidak didukung. Gunakan PDF, DOC, DOCX, JPG, PNG, atau GIF');
+    }
+
+    return true;
+  }
+
+  /**
+   * Sanitize filename for Google Drive
+   */
+  sanitizeFileName(fileName) {
+    if (!fileName) {
+      return 'untitled';
+    }
+
+    return fileName
+      .replace(/[<>:"/\\|?*]/g, '_') // Replace invalid characters
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim()
+      .substring(0, 255); // Limit length
+  }
+
+  /**
+   * Ensure user is authenticated before API calls
+   */
+  async ensureAuthenticated() {
+    if (!this.accessToken || !(await this.isAuthenticated())) {
+      await this.authenticate();
+    }
+  }
+
+  /**
+   * Reset service state (for testing or error recovery)
+   */
+  reset() {
+    this.accessToken = null;
+    this.isInitialized = false;
+    this.initializationPromise = null;
+    this.retryCount = 0;
+    this.isDomainBlocked = false;
+    this.domainAuthError = null;
+    apiLogger.info('Google Drive service reset');
+  }
 }
 
 // Create and export service instance

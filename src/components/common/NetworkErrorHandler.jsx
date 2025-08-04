@@ -38,10 +38,58 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     setNetworkStatus(prev => ({ ...prev, isChecking: true }));
 
     try {
-      const connectivityStatus = await getConnectivityStatus(
-        config.supabase.url,
-        config.supabase.anonKey
-      );
+      // Check if environment variables are configured
+      const hasSupabaseConfig = config.supabase.url && config.supabase.anonKey;
+
+      if (!hasSupabaseConfig) {
+        const isDevelopment = import.meta.env.DEV;
+
+        setNetworkStatus({
+          isOnline: isDevelopment, // Assume online in dev when config missing
+          isChecking: false,
+          lastCheck: new Date(),
+          supabaseReachable: isDevelopment,
+          configMissing: true,
+          status: isDevelopment ? 'dev-config-missing' : 'config-error',
+          issues: ['Missing Supabase configuration']
+        });
+
+        if (!isDevelopment) {
+          setShowNetworkError(true);
+          toast({
+            title: 'Konfigurasi hilang',
+            description: 'Konfigurasi database tidak ditemukan. Hubungi administrator.',
+            variant: 'destructive'
+          });
+        }
+        return;
+      }
+
+      let connectivityStatus;
+      try {
+        connectivityStatus = await getConnectivityStatus(
+          config.supabase.url,
+          config.supabase.anonKey
+        );
+      } catch (connectivityError) {
+        // Handle connectivity check failures gracefully
+        const isDevelopment = import.meta.env.DEV;
+
+        if (isDevelopment) {
+          // In development, don't fail completely
+          connectivityStatus = {
+            isOnline: true,
+            status: 'dev-connectivity-error',
+            details: {
+              network: { isOnline: true },
+              supabase: { isReachable: true, error: connectivityError.message }
+            },
+            issues: [`Connectivity check failed: ${connectivityError.message}`]
+          };
+        } else {
+          throw connectivityError;
+        }
+      }
 
       const isConnected = connectivityStatus.isOnline && connectivityStatus.status !== 'offline';
 
@@ -52,7 +100,8 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
         supabaseReachable: connectivityStatus.details?.supabase?.isReachable || false,
         details: connectivityStatus.details,
         status: connectivityStatus.status,
-        issues: connectivityStatus.issues
+        issues: connectivityStatus.issues,
+        configMissing: false
       });
 
       if (isConnected && showNetworkError) {
@@ -76,14 +125,27 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
       // Conservative fallback - don't assume offline
       const isDevelopment = import.meta.env.DEV;
       const isNetworkError = error.message?.includes('Failed to fetch') || error.name === 'TypeError';
+      const isConfigError = error.message?.includes('ConfigError') || error.name === 'ConfigError';
 
       setNetworkStatus(prev => ({
         ...prev,
         isOnline: isDevelopment ? true : navigator.onLine, // Assume online in dev
         isChecking: false,
         lastCheck: new Date(),
-        error: error.message
+        error: error.message,
+        configMissing: isConfigError
       }));
+
+      // Handle configuration errors
+      if (isConfigError) {
+        setShowNetworkError(true);
+        toast({
+          title: 'Masalah konfigurasi',
+          description: 'Aplikasi tidak dikonfigurasi dengan benar. Hubungi administrator.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
       // Only show error if navigator definitively reports offline, and not in dev with network errors
       if (!navigator.onLine && !(isDevelopment && isNetworkError)) {
@@ -106,13 +168,30 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
   };
 
   useEffect(() => {
-    // Initial check
-    checkConnectivity();
+    // Safe initial check with error boundary
+    const safeCheckConnectivity = async () => {
+      try {
+        await checkConnectivity();
+      } catch (error) {
+        console.warn('Initial connectivity check failed:', error.message);
+        // Set a safe default state
+        setNetworkStatus({
+          isOnline: navigator.onLine,
+          isChecking: false,
+          lastCheck: new Date(),
+          supabaseReachable: false,
+          configMissing: true,
+          error: error.message
+        });
+      }
+    };
+
+    safeCheckConnectivity();
 
     // Setup network listeners
     const cleanup = setupNetworkListeners(
       () => {
-        setTimeout(checkConnectivity, 1000);
+        setTimeout(safeCheckConnectivity, 1000);
       },
       () => {
         setNetworkStatus(prev => ({ ...prev, isOnline: false }));
@@ -123,7 +202,7 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     // Periodic check every 30 seconds if offline
     const interval = setInterval(() => {
       if (!networkStatus.isOnline) {
-        checkConnectivity();
+        safeCheckConnectivity();
       }
     }, 30000);
 
@@ -151,10 +230,13 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
 
               <div>
                 <h2 className="text-xl font-semibold text-red-300 mb-2">
-                  Masalah Koneksi
+                  {networkStatus.configMissing ? 'Masalah Konfigurasi' : 'Masalah Koneksi'}
                 </h2>
                 <p className="text-red-200/80 text-sm">
-                  Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.
+                  {networkStatus.configMissing
+                    ? 'Aplikasi tidak dikonfigurasi dengan benar. Hubungi administrator untuk mengatur environment variables.'
+                    : 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.'
+                  }
                 </p>
               </div>
 
