@@ -159,10 +159,10 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
           description: connectivityStatus.issues?.join(', ') || 'Tidak dapat terhubung ke server',
           variant: 'destructive'
         });
-      } else if (isConnectivityCheckFailed && !showNetworkError) {
-        // For connectivity check failures, show a milder warning
+      } else if (isConnectivityCheckFailed && !showNetworkError && import.meta.env.DEV) {
+        // Only show connectivity warnings in development
         toast({
-          title: 'Peringatan koneksi',
+          title: 'Peringatan koneksi (Dev)',
           description: 'Pemeriksaan koneksi gagal, tetapi aplikasi masih berfungsi',
           variant: 'default'
         });
