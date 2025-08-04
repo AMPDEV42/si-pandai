@@ -520,7 +520,19 @@ const ImprovedSubmissionPage = () => {
               <CardContent className="space-y-4">
                 {/* Google Drive Integration */}
                 <div className="mb-6">
-                  <GoogleDriveAuth 
+                  <GoogleDriveInit
+                    onStatusChange={(isReady, status) => {
+                      setIsGoogleDriveEnabled(isReady);
+                      if (status === 'fallback-mode') {
+                        toast({
+                          title: "Mode Lokal Aktif",
+                          description: "File akan disimpan sementara di browser karena Google Drive tidak tersedia.",
+                          variant: "default"
+                        });
+                      }
+                    }}
+                  />
+                  <GoogleDriveAuth
                     onAuthChange={setIsGoogleDriveAuthenticated}
                   />
                 </div>
