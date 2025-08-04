@@ -68,6 +68,25 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
         return;
       }
 
+      // In production, assume connectivity to prevent CSP/fetch issues
+      if (isProduction) {
+        setNetworkStatus({
+          isOnline: navigator.onLine,
+          isChecking: false,
+          lastCheck: new Date(),
+          supabaseReachable: true,
+          details: {
+            network: { isOnline: navigator.onLine, method: 'navigator-only' },
+            supabase: { isReachable: true, status: 'production-assumed' }
+          },
+          status: 'production-mode',
+          issues: [],
+          configMissing: false,
+          note: 'Connectivity checks disabled in production to prevent CSP violations'
+        });
+        return;
+      }
+
       let connectivityStatus;
       try {
         connectivityStatus = await getConnectivityStatus(
