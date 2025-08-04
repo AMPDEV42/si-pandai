@@ -72,11 +72,12 @@ const Header = () => {
   return (
     <header className="h-16 w-full flex items-center justify-between px-4 md:px-8">
       <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="text-gray-400 hover:bg-white/10 hover:text-white"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-gray-400 hover:bg-white/10 hover:text-white z-50 relative"
           onClick={toggleSidebar}
+          aria-label="Toggle menu navigasi"
         >
           <Menu className="w-5 h-5" />
         </Button>
