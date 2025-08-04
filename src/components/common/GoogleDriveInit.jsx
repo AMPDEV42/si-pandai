@@ -11,6 +11,10 @@ import { Badge } from '../ui/badge';
 import { googleDriveService } from '../../services/googleDriveService';
 import { apiLogger } from '../../lib/logger';
 
+// Throttle initialization attempts to prevent spam
+let lastInitAttempt = 0;
+const INIT_THROTTLE = 10000; // 10 seconds between attempts
+
 const GoogleDriveInit = ({ onStatusChange = () => {} }) => {
   const [status, setStatus] = useState('checking'); // checking, failed, csp-error, domain-error, success
   const [error, setError] = useState(null);
