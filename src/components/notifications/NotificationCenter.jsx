@@ -126,14 +126,13 @@ const NotificationCenter = () => {
 
     // Disable real-time notifications for now to prevent errors
     // TODO: Re-enable when notifications table is properly configured
-    console.log('Real-time notifications disabled - using polling instead');
 
     // Set up periodic polling as fallback
     const pollInterval = setInterval(() => {
       if (user?.id) {
         loadNotifications();
       }
-    }, 30000); // Poll every 30 seconds
+    }, 60000); // Poll every 60 seconds to reduce server load
 
     return () => {
       clearInterval(pollInterval);

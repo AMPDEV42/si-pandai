@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,19 +23,20 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     
     const handleLoginSuccess = (userData) => {
-      // Navigasi berdasarkan role setelah login berhasil
+      // Navigasi berdasarkan role setelah login berhasil dengan React Router
       if (userData?.user?.user_metadata?.role === 'admin-master') {
-        window.location.href = '/dashboard/admin-master';
+        navigate('/dashboard/admin-master', { replace: true });
       } else if (userData?.user?.user_metadata?.role === 'admin-unit') {
-        window.location.href = '/dashboard/admin-unit';
+        navigate('/dashboard/admin-unit', { replace: true });
       } else {
-        window.location.href = '/dashboard';
+        navigate('/dashboard', { replace: true });
       }
     };
 

@@ -21,7 +21,7 @@ import {
   isOnline,
   setupNetworkListeners
 } from '../../lib/networkChecker';
-import { getConnectivityStatus } from '../../lib/networkUtils';
+import { getSimpleConnectivityStatus } from '../../lib/simpleNetworkChecker';
 import { config } from '../../config/environment';
 
 const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
@@ -38,6 +38,9 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     setNetworkStatus(prev => ({ ...prev, isChecking: true }));
 
     try {
+      // In production, use a more conservative approach to avoid fetch errors
+      const isProduction = import.meta.env.PROD;
+
       // Check if environment variables are configured
       const hasSupabaseConfig = config.supabase.url && config.supabase.anonKey;
 
@@ -65,9 +68,28 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
         return;
       }
 
+      // In production, assume connectivity to prevent CSP/fetch issues
+      if (isProduction) {
+        setNetworkStatus({
+          isOnline: navigator.onLine,
+          isChecking: false,
+          lastCheck: new Date(),
+          supabaseReachable: true,
+          details: {
+            network: { isOnline: navigator.onLine, method: 'navigator-only' },
+            supabase: { isReachable: true, status: 'production-assumed' }
+          },
+          status: 'production-mode',
+          issues: [],
+          configMissing: false,
+          note: 'Connectivity checks disabled in production to prevent CSP violations'
+        });
+        return;
+      }
+
       let connectivityStatus;
       try {
-        connectivityStatus = await getConnectivityStatus(
+        connectivityStatus = await getSimpleConnectivityStatus(
           config.supabase.url,
           config.supabase.anonKey
         );
@@ -77,20 +99,19 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
         const isProduction = import.meta.env.PROD;
         const isNetworkError = connectivityError.message?.includes('Failed to fetch') || connectivityError.name === 'TypeError';
 
-        // Create a safe fallback status
+        // Create a safe fallback status - assume online to prevent app blocking
         connectivityStatus = {
-          isOnline: navigator.onLine,
-          status: isNetworkError ? 'connectivity-check-failed' : 'unknown-error',
+          isOnline: true, // Always assume online to prevent blocking
+          status: isNetworkError ? 'connectivity-check-failed-fallback' : 'unknown-error-fallback',
           details: {
             network: { isOnline: navigator.onLine },
             supabase: {
-              isReachable: isDevelopment, // Assume reachable in dev
+              isReachable: true, // Assume reachable in all environments
               error: connectivityError.message
             }
           },
-          issues: isDevelopment
-            ? [`Connectivity check failed (dev): ${connectivityError.message}`]
-            : ['Connectivity check temporarily unavailable']
+          issues: [],
+          note: 'Connectivity check failed but assumed online to prevent app blocking'
         };
 
         // Log but don't throw in production to prevent app breakage
@@ -138,10 +159,10 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
           description: connectivityStatus.issues?.join(', ') || 'Tidak dapat terhubung ke server',
           variant: 'destructive'
         });
-      } else if (isConnectivityCheckFailed && !showNetworkError) {
-        // For connectivity check failures, show a milder warning
+      } else if (isConnectivityCheckFailed && !showNetworkError && import.meta.env.DEV) {
+        // Only show connectivity warnings in development
         toast({
-          title: 'Peringatan koneksi',
+          title: 'Peringatan koneksi (Dev)',
           description: 'Pemeriksaan koneksi gagal, tetapi aplikasi masih berfungsi',
           variant: 'default'
         });

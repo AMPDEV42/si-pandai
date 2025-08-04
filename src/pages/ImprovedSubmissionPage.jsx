@@ -28,6 +28,7 @@ import { useToast } from '../components/ui/use-toast';
 import EmployeeSelection from '../components/submission/EmployeeSelection';
 import RequirementUpload from '../components/submission/RequirementUpload';
 import GoogleDriveAuth from '../components/common/GoogleDriveAuth';
+import GoogleDriveInit from '../components/common/GoogleDriveInit';
 import { getSubmissionTypeById } from '../data/submissionTypes';
 import { testGoogleDriveUpload, getGoogleDriveStatus } from '../utils/googleDriveTest';
 import { submissionService } from '../services/submissionService';
@@ -307,7 +308,7 @@ const ImprovedSubmissionPage = () => {
         // Initialize Google Drive service safely
         const initSuccess = await safeInitializeGoogleDrive();
         if (!initSuccess) {
-          console.log('Google Drive initialization failed gracefully');
+          console.log('Google Drive not available - using local storage fallback');
           setIsGoogleDriveEnabled(false);
           return;
         }
@@ -519,7 +520,19 @@ const ImprovedSubmissionPage = () => {
               <CardContent className="space-y-4">
                 {/* Google Drive Integration */}
                 <div className="mb-6">
-                  <GoogleDriveAuth 
+                  <GoogleDriveInit
+                    onStatusChange={(isReady, status) => {
+                      setIsGoogleDriveEnabled(isReady);
+                      if (status === 'fallback-mode') {
+                        toast({
+                          title: "Mode Lokal Aktif",
+                          description: "File akan disimpan sementara di browser karena Google Drive tidak tersedia.",
+                          variant: "default"
+                        });
+                      }
+                    }}
+                  />
+                  <GoogleDriveAuth
                     onAuthChange={setIsGoogleDriveAuthenticated}
                   />
                 </div>

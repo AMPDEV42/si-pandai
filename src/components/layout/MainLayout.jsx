@@ -35,47 +35,34 @@ const MainLayout = () => {
         />
       )}
 
-      {/* Header and Sidebar Container */}
-      <div className="flex">
-        {/* Sidebar - Part of the header flow */}
-        <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 flex-shrink-0`}>
-          <div className="fixed top-0 bottom-0 left-0 w-64 h-screen overflow-y-auto z-40">
-            <Sidebar />
-          </div>
-        </div>
-
-        {/* Header - Takes remaining width */}
-        <div className="flex-1">
-          <header className="sticky top-0 z-20 h-16 bg-slate-900/80 backdrop-blur-md border-b border-white/10">
-            <Header />
-          </header>
-        </div>
+      {/* Sidebar */}
+      <div className={`fixed top-0 bottom-0 left-0 w-64 h-screen overflow-y-auto z-40 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <Sidebar />
       </div>
+
+      {/* Header - Full width, always visible */}
+      <header className="sticky top-0 z-30 h-16 bg-slate-900/80 backdrop-blur-md border-b border-white/10">
+        <Header />
+      </header>
       
       {/* Main Content */}
-      <div className="flex-1 flex">
-        {/* Sidebar Spacer - Matches the width of the sidebar */}
-        <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 flex-shrink-0`}></div>
-        
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto">
-          <main
-            id="main-content"
-            role="main"
-            aria-label="Konten utama aplikasi"
-            className="p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)]"
-          >
-            <Outlet />
+      <div className="flex-1">
+        <main
+          id="main-content"
+          role="main"
+          aria-label="Konten utama aplikasi"
+          className={`p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)] transition-all duration-300 ${isSidebarOpen ? 'md:ml-64' : 'ml-0'}`}
+        >
+          <Outlet />
 
-            {/* Footer */}
-            <footer
-              role="contentinfo"
-              className="mt-8 pt-4 text-center text-sm text-gray-400 border-t border-white/10"
-            >
-              <p>© {new Date().getFullYear()} SIPANDAI - Sistem Pengajuan Administrasi Digital ASN Terintegrasi</p>
-            </footer>
-          </main>
-        </div>
+          {/* Footer */}
+          <footer
+            role="contentinfo"
+            className="mt-8 pt-4 text-center text-sm text-gray-400 border-t border-white/10"
+          >
+            <p>© {new Date().getFullYear()} SIPANDAI - Sistem Pengajuan Administrasi Digital ASN Terintegrasi</p>
+          </footer>
+        </main>
       </div>
     </div>
   );

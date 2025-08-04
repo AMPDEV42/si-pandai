@@ -106,17 +106,14 @@ const Sidebar = () => {
   }
 
   return (
-    <AnimatePresence>
-      {isSidebarOpen && (
-        <motion.aside
-          initial={{ x: -250, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -250, opacity: 0 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="h-screen bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col p-4 w-64 relative z-40"
-          role="navigation"
-          aria-label="Menu navigasi utama"
-        >
+    <motion.aside
+      initial={false}
+      animate={{ opacity: isSidebarOpen ? 1 : 0 }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      className="h-screen bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col p-4 w-64 relative z-40"
+      role="navigation"
+      aria-label="Menu navigasi utama"
+    >
           <div className="px-4 pt-4 pb-3 border-b border-white/10">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -215,9 +212,7 @@ const Sidebar = () => {
               </Button>
             </div>
           </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+    </motion.aside>
   );
 };
 

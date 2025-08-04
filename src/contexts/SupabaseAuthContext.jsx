@@ -5,7 +5,7 @@ import { sendNotification } from '../services/notificationService';
 import { authLogger } from '../lib/logger';
 import { validateEmail, validatePassword, validateUserRegistration } from '../lib/validation';
 import { getErrorMessage, getRecoverySuggestion, categorizeError, ERROR_TYPES } from '../constants/errorTypes';
-import { retryWithBackoff, checkNetworkConnectivity } from '../lib/networkChecker';
+
 
 const AuthContext = createContext(undefined);
 
@@ -22,15 +22,12 @@ export const AuthProvider = ({ children }) => {
 
     if (session?.user) {
       try {
-        // Fetch the full user profile to get the role with network retry
-        const { data: profile, error } = await retryWithBackoff(
-          () => supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single(),
-          { maxRetries: 2, initialDelay: 1000 }
-        );
+        // Fetch the full user profile to get the role
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
         if (error) {
           const errorType = categorizeError(error);
