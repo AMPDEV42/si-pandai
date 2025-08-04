@@ -65,10 +65,31 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
         return;
       }
 
-      const connectivityStatus = await getConnectivityStatus(
-        config.supabase.url,
-        config.supabase.anonKey
-      );
+      let connectivityStatus;
+      try {
+        connectivityStatus = await getConnectivityStatus(
+          config.supabase.url,
+          config.supabase.anonKey
+        );
+      } catch (connectivityError) {
+        // Handle connectivity check failures gracefully
+        const isDevelopment = import.meta.env.DEV;
+
+        if (isDevelopment) {
+          // In development, don't fail completely
+          connectivityStatus = {
+            isOnline: true,
+            status: 'dev-connectivity-error',
+            details: {
+              network: { isOnline: true },
+              supabase: { isReachable: true, error: connectivityError.message }
+            },
+            issues: [`Connectivity check failed: ${connectivityError.message}`]
+          };
+        } else {
+          throw connectivityError;
+        }
+      }
 
       const isConnected = connectivityStatus.isOnline && connectivityStatus.status !== 'offline';
 
