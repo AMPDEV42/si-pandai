@@ -156,7 +156,7 @@ export const safeInitializeGoogleDrive = async () => {
   } catch (error) {
     // Don't log domain auth errors repeatedly
     if (!error.message?.includes('Domain Authorization Required')) {
-      apiLogger.warn('Google Drive initialization failed gracefully', {
+      apiLogger.debug('Google Drive not available - using fallback mode', {
         error: error.message
       });
     }
