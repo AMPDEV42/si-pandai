@@ -72,36 +72,55 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
           config.supabase.anonKey
         );
       } catch (connectivityError) {
-        // Handle connectivity check failures gracefully
+        // Handle connectivity check failures gracefully in all environments
         const isDevelopment = import.meta.env.DEV;
+        const isProduction = import.meta.env.PROD;
+        const isNetworkError = connectivityError.message?.includes('Failed to fetch') || connectivityError.name === 'TypeError';
 
-        if (isDevelopment) {
-          // In development, don't fail completely
-          connectivityStatus = {
-            isOnline: true,
-            status: 'dev-connectivity-error',
-            details: {
-              network: { isOnline: true },
-              supabase: { isReachable: true, error: connectivityError.message }
-            },
-            issues: [`Connectivity check failed: ${connectivityError.message}`]
-          };
-        } else {
-          throw connectivityError;
+        // Create a safe fallback status
+        connectivityStatus = {
+          isOnline: navigator.onLine,
+          status: isNetworkError ? 'connectivity-check-failed' : 'unknown-error',
+          details: {
+            network: { isOnline: navigator.onLine },
+            supabase: {
+              isReachable: isDevelopment, // Assume reachable in dev
+              error: connectivityError.message
+            }
+          },
+          issues: isDevelopment
+            ? [`Connectivity check failed (dev): ${connectivityError.message}`]
+            : ['Connectivity check temporarily unavailable']
+        };
+
+        // Log but don't throw in production to prevent app breakage
+        if (isProduction) {
+          console.warn('Connectivity check failed in production:', {
+            error: connectivityError.message,
+            type: connectivityError.name,
+            navigator_online: navigator.onLine
+          });
         }
       }
 
-      const isConnected = connectivityStatus.isOnline && connectivityStatus.status !== 'offline';
+      // Determine connection status more conservatively
+      const hasNavigatorOnline = navigator.onLine;
+      const isDefinitelyOffline = connectivityStatus.status === 'offline' && !hasNavigatorOnline;
+      const isConnectivityCheckFailed = connectivityStatus.status === 'connectivity-check-failed';
+
+      // Be conservative: only consider truly offline if navigator says offline AND connectivity check confirms
+      const isConnected = hasNavigatorOnline && !isDefinitelyOffline;
 
       setNetworkStatus({
         isOnline: isConnected,
         isChecking: false,
         lastCheck: new Date(),
-        supabaseReachable: connectivityStatus.details?.supabase?.isReachable || false,
+        supabaseReachable: connectivityStatus.details?.supabase?.isReachable ?? true, // Default to true if unknown
         details: connectivityStatus.details,
         status: connectivityStatus.status,
         issues: connectivityStatus.issues,
-        configMissing: false
+        configMissing: false,
+        connectivityCheckFailed: isConnectivityCheckFailed
       });
 
       if (isConnected && showNetworkError) {
@@ -111,32 +130,49 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
           description: 'Koneksi ke server telah dipulihkan',
         });
         onNetworkRestore?.();
-      } else if (!isConnected && !showNetworkError && connectivityStatus.status === 'offline') {
-        // Only show error for definitive offline status
+      } else if (isDefinitelyOffline && !showNetworkError) {
+        // Only show error for definitive offline status (both navigator and connectivity check agree)
         setShowNetworkError(true);
         toast({
           title: 'Masalah koneksi',
           description: connectivityStatus.issues?.join(', ') || 'Tidak dapat terhubung ke server',
           variant: 'destructive'
         });
+      } else if (isConnectivityCheckFailed && !showNetworkError) {
+        // For connectivity check failures, show a milder warning
+        toast({
+          title: 'Peringatan koneksi',
+          description: 'Pemeriksaan koneksi gagal, tetapi aplikasi masih berfungsi',
+          variant: 'default'
+        });
       }
 
     } catch (error) {
-      // Conservative fallback - don't assume offline
+      // Conservative fallback - don't assume offline unless navigator confirms
       const isDevelopment = import.meta.env.DEV;
+      const isProduction = import.meta.env.PROD;
       const isNetworkError = error.message?.includes('Failed to fetch') || error.name === 'TypeError';
       const isConfigError = error.message?.includes('ConfigError') || error.name === 'ConfigError';
 
+      // In production, log error but maintain functionality
+      if (isProduction && isNetworkError) {
+        console.warn('Network check failed in production, assuming connectivity:', {
+          error: error.message,
+          navigator_online: navigator.onLine
+        });
+      }
+
       setNetworkStatus(prev => ({
         ...prev,
-        isOnline: isDevelopment ? true : navigator.onLine, // Assume online in dev
+        isOnline: navigator.onLine, // Trust navigator.onLine as primary indicator
         isChecking: false,
         lastCheck: new Date(),
         error: error.message,
-        configMissing: isConfigError
+        configMissing: isConfigError,
+        checkFailed: true
       }));
 
-      // Handle configuration errors
+      // Handle configuration errors (always show these)
       if (isConfigError) {
         setShowNetworkError(true);
         toast({
@@ -147,13 +183,20 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
         return;
       }
 
-      // Only show error if navigator definitively reports offline, and not in dev with network errors
-      if (!navigator.onLine && !(isDevelopment && isNetworkError)) {
+      // Only show error if navigator definitively reports offline
+      if (!navigator.onLine) {
         setShowNetworkError(true);
         toast({
           title: 'Masalah koneksi',
           description: 'Periksa koneksi internet Anda',
           variant: 'destructive'
+        });
+      } else if (isProduction && isNetworkError) {
+        // In production, if navigator says online but we have network errors, show a gentle warning
+        toast({
+          title: 'Peringatan',
+          description: 'Pemeriksaan jaringan gagal, tetapi koneksi tampaknya tersedia',
+          variant: 'default'
         });
       }
     }
@@ -212,7 +255,7 @@ const NetworkErrorHandler = ({ children, onNetworkRestore }) => {
     };
   }, [networkStatus.isOnline]);
 
-  if (showNetworkError && !networkStatus.isOnline) {
+  if (showNetworkError && !networkStatus.isOnline && !navigator.onLine) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-900 flex items-center justify-center p-4">
         <motion.div
