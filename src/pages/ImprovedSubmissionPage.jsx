@@ -308,7 +308,7 @@ const ImprovedSubmissionPage = () => {
         // Initialize Google Drive service safely
         const initSuccess = await safeInitializeGoogleDrive();
         if (!initSuccess) {
-          console.log('Google Drive initialization failed gracefully');
+          console.log('Google Drive not available - using local storage fallback');
           setIsGoogleDriveEnabled(false);
           return;
         }
