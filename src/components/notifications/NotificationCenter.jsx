@@ -126,7 +126,6 @@ const NotificationCenter = () => {
 
     // Disable real-time notifications for now to prevent errors
     // TODO: Re-enable when notifications table is properly configured
-    console.log('Real-time notifications disabled - using polling instead');
 
     // Set up periodic polling as fallback
     const pollInterval = setInterval(() => {
