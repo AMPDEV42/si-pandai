@@ -132,7 +132,7 @@ const NotificationCenter = () => {
       if (user?.id) {
         loadNotifications();
       }
-    }, 30000); // Poll every 30 seconds
+    }, 60000); // Poll every 60 seconds to reduce server load
 
     return () => {
       clearInterval(pollInterval);
