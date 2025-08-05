@@ -12,6 +12,7 @@ export const checkDomainAuthorization = () => {
   const requiredDomains = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://localhost:5176',
     currentDomain // Current domain should be added
   ];
 
@@ -43,7 +44,7 @@ export const checkDomainAuthorization = () => {
   if (isLocalhost) {
     domainInfo.recommendations.push({
       type: 'info',
-      message: 'You\'re using localhost. Make sure http://localhost:5173 and http://localhost:3000 are added to authorized JavaScript origins.'
+      message: `You're using localhost (${currentDomain}). Make sure ${currentDomain}, http://localhost:5173, and http://localhost:3000 are added to authorized JavaScript origins.`
     });
   }
 

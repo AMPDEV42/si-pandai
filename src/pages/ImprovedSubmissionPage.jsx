@@ -57,7 +57,15 @@ const ImprovedSubmissionPage = () => {
   useEffect(() => {
     const checkGoogleDriveStatus = async () => {
       try {
-        // Check if Google Drive is available first
+        // Check if Google Drive is configured first
+        if (!googleDriveService.isConfigured()) {
+          console.log('Google Drive not configured - missing API keys');
+          setIsGoogleDriveEnabled(false);
+          setIsGoogleDriveAuthenticated(false);
+          return;
+        }
+
+        // Check if Google Drive is available (not blocked)
         if (!googleDriveService.isAvailable()) {
           console.log('Google Drive not available - domain blocked or not configured');
           setIsGoogleDriveEnabled(false);
@@ -65,21 +73,45 @@ const ImprovedSubmissionPage = () => {
           return;
         }
 
-        // Use safe availability check instead of direct authentication check
-        const availability = await checkGoogleDriveAvailability();
-        if (availability.available) {
-          const status = await googleDriveService.isAuthenticated();
-          setIsGoogleDriveEnabled(true);
-          setIsGoogleDriveAuthenticated(status);
-        } else {
-          console.log('Google Drive not available:', availability.reason);
+        // Initialize Google Drive service
+        const initialized = await googleDriveService.initialize();
+        if (!initialized) {
+          console.log('Google Drive initialization failed');
           setIsGoogleDriveEnabled(false);
           setIsGoogleDriveAuthenticated(false);
+          return;
         }
+
+        // Check authentication status
+        const isAuthenticated = await googleDriveService.isAuthenticated();
+        setIsGoogleDriveEnabled(true);
+        setIsGoogleDriveAuthenticated(isAuthenticated);
+
+        if (isAuthenticated) {
+          console.log('✅ Google Drive is ready and authenticated');
+        } else {
+          console.log('⚠️ Google Drive is available but not authenticated');
+        }
+
       } catch (error) {
-        console.log('Error checking Google Drive status:', error.message);
+        console.error('Error checking Google Drive status:', error.message);
         setIsGoogleDriveEnabled(false);
         setIsGoogleDriveAuthenticated(false);
+        
+        // Show specific error message based on error type
+        if (error.message.includes('Domain Authorization Required')) {
+          toast({
+            title: 'Google Drive - Konfigurasi Diperlukan',
+            description: 'Domain localhost belum diauthorize di Google Cloud Console. Silakan hubungi administrator untuk mengonfigurasi OAuth settings.',
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Google Drive tidak tersedia',
+            description: 'Terjadi masalah saat menghubungkan ke Google Drive. File akan disimpan sementara.',
+            variant: 'destructive'
+          });
+        }
       } finally {
         setIsCheckingGoogleDrive(false);
       }
@@ -141,15 +173,102 @@ const ImprovedSubmissionPage = () => {
     try {
       setUploadingFiles(prev => ({ ...prev, [requirementId]: true }));
 
-      // Here you would typically upload to Supabase Storage
-      // For now, we'll store the file object
-      const fileData = {
-        file,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        uploadedAt: new Date().toISOString()
-      };
+      let fileData;
+
+      // Check if Google Drive is enabled and authenticated
+      if (isGoogleDriveEnabled && isGoogleDriveAuthenticated && selectedEmployee && submissionType) {
+        try {
+          // Upload to Google Drive
+          apiLogger.info('Uploading file to Google Drive', {
+            requirementId,
+            fileName: file.name,
+            fileSize: file.size,
+            employeeName: selectedEmployee.full_name
+          });
+
+          // Create folder structure
+          const { employeeFolderId } = await googleDriveService.createSubmissionFolderStructure(
+            submissionType,
+            selectedEmployee.full_name
+          );
+
+          // Find the requirement details
+          const requirement = submissionType.requirements.find(r => r.id === requirementId);
+          if (!requirement) {
+            throw new Error('Requirement tidak ditemukan');
+          }
+
+          // Generate descriptive filename
+          const fileExtension = file.name.split('.').pop();
+          const cleanRequirementName = requirement.name
+            .replace(/[^a-zA-Z0-9\s]/g, '')
+            .trim()
+            .replace(/\s+/g, '_');
+          const fileName = `${cleanRequirementName}.${fileExtension}`;
+
+          // Upload file to Google Drive
+          const uploadResult = await googleDriveService.uploadFile(
+            file,
+            employeeFolderId,
+            fileName
+          );
+
+          fileData = {
+            ...uploadResult,
+            requirementId,
+            requirementName: requirement.name,
+            uploadedAt: new Date().toISOString(),
+            source: 'google-drive'
+          };
+
+          toast({
+            title: 'Upload berhasil',
+            description: `${file.name} berhasil diupload ke Google Drive`,
+          });
+
+        } catch (driveError) {
+          apiLogger.error('Google Drive upload failed, falling back to local storage', {
+            requirementId,
+            error: driveError.message
+          });
+
+          // Fallback to local storage if Google Drive fails
+          fileData = {
+            file,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            requirementId,
+            uploadedAt: new Date().toISOString(),
+            source: 'local'
+          };
+
+          toast({
+            title: 'Upload ke Google Drive gagal',
+            description: `File disimpan sementara. Error: ${driveError.message}`,
+            variant: 'destructive'
+          });
+        }
+      } else {
+        // Store locally if Google Drive is not available
+        fileData = {
+          file,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          requirementId,
+          uploadedAt: new Date().toISOString(),
+          source: 'local'
+        };
+
+        if (!isGoogleDriveEnabled) {
+          toast({
+            title: 'Google Drive tidak tersedia',
+            description: 'File disimpan sementara di browser',
+            variant: 'destructive'
+          });
+        }
+      }
 
       setUploadedFiles(prev => ({
         ...prev,
@@ -159,7 +278,8 @@ const ImprovedSubmissionPage = () => {
       apiLogger.info('File uploaded for requirement', {
         requirementId,
         fileName: file.name,
-        fileSize: file.size
+        fileSize: file.size,
+        source: fileData.source
       });
 
     } catch (error) {
@@ -507,94 +627,127 @@ const ImprovedSubmissionPage = () => {
           )}
 
           {currentStep === STEPS.REQUIREMENTS_UPLOAD && (
-            <Card className="glass-effect border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Upload Persyaratan
-                </CardTitle>
-                <p className="text-gray-300 text-sm mt-2">
-                  Upload file untuk setiap persyaratan yang diperlukan
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Google Drive Integration */}
-                <div className="mb-6">
-                  <GoogleDriveInit
-                    onStatusChange={(isReady, status) => {
-                      setIsGoogleDriveEnabled(isReady);
-                      if (status === 'fallback-mode') {
-                        toast({
-                          title: "Mode Lokal Aktif",
-                          description: "File akan disimpan sementara di browser karena Google Drive tidak tersedia.",
-                          variant: "default"
-                        });
-                      }
-                    }}
-                  />
-                  <GoogleDriveAuth
-                    onAuthChange={setIsGoogleDriveAuthenticated}
-                  />
-                </div>
-
-                {/* Test Upload Button */}
-                {isGoogleDriveAuthenticated && (
-                  <Card className="border-blue-500/20 bg-blue-500/5">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-blue-300">Test Google Drive Upload</h4>
-                          <p className="text-xs text-blue-200/80 mt-1">
-                            Uji coba upload file ke Google Drive untuk memastikan integrasi berfungsi
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={handleTestGoogleDriveUpload}
-                          disabled={isTestingUpload}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          {isTestingUpload ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2" />
-                              Testing...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-4 h-4 mr-2" />
-                              Test Upload
-                            </>
-                          )}
-                        </Button>
+            <motion.div
+              key="requirements"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              className="space-y-6"
+            >
+              {/* Google Drive Status Card */}
+              <Card className="bg-slate-800/50 border-white/10">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        isGoogleDriveEnabled && isGoogleDriveAuthenticated ? 'bg-green-500' : 
+                        isGoogleDriveEnabled ? 'bg-yellow-500' : 'bg-red-500'
+                      }`} />
+                      <div>
+                        <p className="text-white font-medium">
+                          {isGoogleDriveEnabled && isGoogleDriveAuthenticated ? 'Google Drive Terhubung' :
+                           isGoogleDriveEnabled ? 'Google Drive Perlu Autentikasi' :
+                           'Google Drive Tidak Tersedia'}
+                        </p>
+                        <p className="text-gray-400 text-sm">
+                          {isGoogleDriveEnabled && isGoogleDriveAuthenticated ? 
+                            'File akan otomatis diupload ke Google Drive' :
+                           isGoogleDriveEnabled ? 
+                            'Klik tombol di bawah untuk menghubungkan ke Google Drive' :
+                            'Domain localhost belum dikonfigurasi. File akan disimpan sementara.'}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
+                    </div>
+                    {isGoogleDriveEnabled && !isGoogleDriveAuthenticated && (
+                      <Button
+                        onClick={async () => {
+                          try {
+                            await googleDriveService.authenticate(false);
+                            const isAuth = await googleDriveService.isAuthenticated();
+                            setIsGoogleDriveAuthenticated(isAuth);
+                            if (isAuth) {
+                              toast({
+                                title: 'Google Drive terhubung',
+                                description: 'Sekarang file akan otomatis diupload ke Google Drive'
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: 'Gagal menghubungkan Google Drive',
+                              description: error.message,
+                              variant: 'destructive'
+                            });
+                          }
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        size="sm"
+                      >
+                        Hubungkan Google Drive
+                      </Button>
+                    )}
+                    {!isGoogleDriveEnabled && (
+                      <Button
+                        onClick={() => {
+                          toast({
+                            title: 'Konfigurasi Diperlukan',
+                            description: 'Silakan tambahkan http://localhost:5175 ke Authorized JavaScript Origins di Google Cloud Console',
+                            variant: 'destructive'
+                          });
+                        }}
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        size="sm"
+                        disabled
+                      >
+                        Perlu Konfigurasi
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-                {submissionType.requirements?.map((requirement, index) => (
-                  <RequirementUpload
-                    key={`requirement-${index}`}
-                    requirement={{
-                      id: `req-${index}`,
-                      title: requirement,
-                      required: true,
-                      description: `Upload dokumen ${requirement} dalam format PDF, DOC, DOCX, JPG, atau PNG (maksimal 5MB)`
-                    }}
-                    uploadedFile={uploadedFiles[`req-${index}`]}
-                    onFileUpload={handleFileUpload}
-                    onFileRemove={handleFileRemove}
-                    isUploading={uploadingFiles[`req-${index}`]}
-                    submissionType={submissionType}
-                    employeeName={selectedEmployee?.full_name}
-                    useGoogleDrive={isGoogleDriveEnabled}
-                  />
-                ))}
-              </CardContent>
-            </Card>
+              <Card className="bg-slate-800/50 border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Upload className="w-5 h-5" />
+                    Upload Dokumen Persyaratan
+                  </CardTitle>
+                  <p className="text-gray-400 text-sm">
+                    Upload semua dokumen yang diperlukan untuk {submissionType?.title}
+                    {isGoogleDriveEnabled && isGoogleDriveAuthenticated && (
+                      <span className="block mt-1 text-green-400">
+                        ✓ File akan otomatis disimpan ke Google Drive
+                      </span>
+                    )}
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {submissionType?.requirements?.map((requirement) => (
+                    <RequirementUpload
+                      key={requirement.id}
+                      requirement={requirement}
+                      uploadedFile={uploadedFiles[requirement.id]}
+                      onFileUpload={handleFileUpload}
+                      onFileRemove={handleFileRemove}
+                      isUploading={uploadingFiles[requirement.id]}
+                      submissionType={submissionType}
+                      employeeName={selectedEmployee?.full_name}
+                      useGoogleDrive={isGoogleDriveEnabled && isGoogleDriveAuthenticated}
+                    />
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
 
-          {currentStep === STEPS.REVIEW_SUBMIT && (
-            <Card className="glass-effect border-white/20">
+        {currentStep === STEPS.REVIEW_SUBMIT && (
+          <motion.div
+            key="review"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            className="space-y-6"
+          >
+            <Card className="bg-slate-800/50 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />
@@ -652,6 +805,11 @@ const ImprovedSubmissionPage = () => {
                         <div key={reqId} className="flex items-center justify-between text-sm">
                           <span className="text-gray-400">{requirement?.name}:</span>
                           <span className="text-white">{file.name}</span>
+                          {file.source === 'google-drive' && (
+                            <Badge variant="outline" className="text-green-400 border-green-400">
+                              Google Drive
+                            </Badge>
+                          )}
                         </div>
                       );
                     })}
@@ -659,7 +817,8 @@ const ImprovedSubmissionPage = () => {
                 </div>
               </CardContent>
             </Card>
-          )}
+          </motion.div>
+        )}
         </motion.div>
       </AnimatePresence>
 
